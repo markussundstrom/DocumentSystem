@@ -17,7 +17,31 @@ namespace DocumentSystem.Models
         [InverseProperty("Parent")]
         public List<Node> Contents {get; set;}
         public List<Permission> Permissions {get; set;}
-    }
+
+        ///<summary>
+        ///Method <c>HasPermission<c> checks if a given user has specified
+        ///permission to the folder
+        ///</summary>
+        ///<returns>True if user has permission, otherwise false</returns>
+        public bool HasPermission(User user, PermissionMode mode) {
+            if (user == this.Owner) {
+                return true;
+            }
+
+            List<Permission> matchedPerms = new List<Permission>;
+
+            matchedPerms.addRange(Permissions.Where(p => p.User == user));
+             
+            matchedPerms.addRange(Permissions.Where(
+                    p => user.Roles.Any(q => q == p.Role)));
+                    
+            foreach (Permission perm in matchedPerms) {
+                if (perm.Mode & mode) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
 
     public class Document : Node {
@@ -43,15 +67,17 @@ namespace DocumentSystem.Models
 
 
     public class Permission {
-        public enum PermissionMode {
-            None = 0,
-            Write = 2,
-            Read = 4
-        }
         [Key]
         public Guid Id {get; set;}
         public Role? Role {get; set;}
         public User? User {get; set;}
         public PermissionMode Mode {get; set;} 
+    }
+
+
+    public enum PermissionMode {
+        None = 0,
+        Write = 2,
+        Read = 4
     }
 }
