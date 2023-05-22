@@ -28,20 +28,21 @@ namespace DocumentSystem.Models
                 return true;
             }
 
-            List<Permission> matchedPerms = new List<Permission>;
+            List<Permission> matchedPerms = new List<Permission>();
 
-            matchedPerms.addRange(Permissions.Where(p => p.User == user));
+            matchedPerms.AddRange(Permissions.Where(p => p.User == user));
              
-            matchedPerms.addRange(Permissions.Where(
+            matchedPerms.AddRange(Permissions.Where(
                     p => user.Roles.Any(q => q == p.Role)));
                     
             foreach (Permission perm in matchedPerms) {
-                if (perm.Mode & mode) {
+                if (mode & perm.Mode)  {
                     return true;
                 }
             }
             return false;
         }
+    }
 
 
     public class Document : Node {

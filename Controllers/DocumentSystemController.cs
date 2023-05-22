@@ -1,4 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
 using DocumentSystem.Services;
+using DocumentSystem.Models;
 
 namespace DocumentSystem.Controllers
 {
@@ -6,17 +13,29 @@ namespace DocumentSystem.Controllers
     [ApiController]
     public class DocumentSystemController : ControllerBase {
         private readonly DocumentSystemService m_docserv;
+        private readonly DocumentSystemContext m_context;
 
-        public DocumentSystemController(DocumentSystemService docserv) {
+        public DocumentSystemController(DocumentSystemService docserv,
+                DocumentSystemContext context) {
             this.m_docserv = docserv;
+            this.m_context = context;
         }
 
         [HttpGet]
-        [Route("tree/{id?}"]
+        [Route("tree/{id?}")]
         public async Task<ActionResult<FolderDTO>> GetFolderTree(
-                Guid Id = null) {
-            FolderDTO tree = m_docserv.ListContents(Id);
-            return Ok(tree);
+                [FromBody] Guid UserId,
+                Guid? Id = null) {
+            User user = m_context.Users.Where(u => u.Id == UserId).SingleOrDefault();
+            ServiceResponse<List<NodeDTO>> result = m_docserv.GetFolderTree(Id, user);
+
+            if (result.Success) {
+                return Ok(result.Data);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                    ErrorMessage = result.ErrorMessage
+                });
+            }
         }
     }
 }

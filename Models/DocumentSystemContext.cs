@@ -18,6 +18,8 @@ namespace DocumentSystem.Models
         public DbSet<Document> Documents {get; set;} = null!;
         public DbSet<Metadata> Metadata {get; set;} = null!;
         public DbSet<Permission> Permissions {get; set;} = null!;
+        public DbSet<User> Users {get; set;} = null!;
+        public DbSet<Role> Roles {get; set;} = null!;
     }
 
 
