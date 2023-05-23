@@ -27,7 +27,7 @@ namespace DocumentSystem.Controllers
                 [FromBody] Guid UserId,
                 Guid? Id = null) {
             User user = m_context.Users.Where(u => u.Id == UserId).SingleOrDefault();
-            ServiceResponse<List<NodeDTO>> result = m_docserv.GetFolderTree(Id, user);
+            ServiceResponse<List<NodeDTO>> result = await m_docserv.GetFolderTree(Id, user);
 
             if (result.Success) {
                 return Ok(result.Data);

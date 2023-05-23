@@ -36,7 +36,7 @@ namespace DocumentSystem.Models
                     p => user.Roles.Any(q => q == p.Role)));
                     
             foreach (Permission perm in matchedPerms) {
-                if (mode & perm.Mode)  {
+                if ((mode & perm.Mode) == perm.Mode)  {
                     return true;
                 }
             }

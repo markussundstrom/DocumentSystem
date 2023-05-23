@@ -18,7 +18,7 @@ namespace DocumentSystem.Services
         }
 
         public async Task<ServiceResponse<List<NodeDTO>>> GetFolderTree(
-                Guid Id, User user) {
+                Guid? Id, User user) {
             ServiceResponse<List<NodeDTO>> result = 
                     new ServiceResponse<List<NodeDTO>>();
 
@@ -31,18 +31,18 @@ namespace DocumentSystem.Services
                 return result;
             }
 
-            Folder folder = m_context.Folders.WhereAsync(f => f.Id == Id);
+            Folder folder = await m_context.Folders.Where(f => f.Id == Id).SingleAsync();
 
             //Check if user is permitted to read folder
             if (!folder.HasPermission(user, PermissionMode.Read)) {
                 result.Success = false;
-                result.Statuscode = (HttpStatusCode)403;
+                result.StatusCode = (HttpStatusCode)403;
                 result.Data = null;
                 result.ErrorMessage = "User does not have permission to " + 
                                       "read requested folder";
                 return result;
             }
-            FolderDTO tree = TraverseFolderTree(folder, user);
+            List<NodeDTO> tree = await TraverseFolderTree(folder, user);
             result.Success = true;
             result.StatusCode = (HttpStatusCode)200;
             result.Data = tree;
@@ -61,7 +61,7 @@ namespace DocumentSystem.Services
                         contents.Add(new FolderDTO() {
                                 Id = node.Id,
                                 Name = node.Name,
-                                Contents = TraverseFolderTree((Folder)node, user)
+                                Contents = await TraverseFolderTree((Folder)node, user)
                         });
                     } else if (node is Document) {
                         contents.Add(new DocumentDTO() {

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using DocumentSystem.Models;
+using DocumentSystem.Services;
 namespace DocumentSystem;
 
 public class Program
@@ -20,7 +21,7 @@ public class Program
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-        builder.Services.AddScoped(DocumentSystemService);
+//        builder.Services.AddScoped(DocumentSystemService);
 
         var app = builder.Build();
 
