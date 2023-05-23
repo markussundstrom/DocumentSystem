@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentSystem.Migrations
 {
     [DbContext(typeof(DocumentSystemContext))]
-    [Migration("20230516133628_create_database")]
-    partial class create_database
+    [Migration("20230523123858_initial_create")]
+    partial class initial_create
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -124,7 +124,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasIndex("NodeId");
 
-                    b.ToTable("Revision");
+                    b.ToTable("Revisions");
                 });
 
             modelBuilder.Entity("DocumentSystem.Models.Role", b =>
@@ -139,7 +139,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Role");
+                    b.ToTable("Roles");
                 });
 
             modelBuilder.Entity("DocumentSystem.Models.User", b =>
@@ -158,7 +158,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("User");
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("RoleUser", b =>
@@ -219,7 +219,7 @@ namespace DocumentSystem.Migrations
                         .HasForeignKey("FolderId");
 
                     b.HasOne("DocumentSystem.Models.Revision", null)
-                        .WithMany("Permission")
+                        .WithMany("Permissions")
                         .HasForeignKey("RevisionId");
 
                     b.HasOne("DocumentSystem.Models.Role", "Role")
@@ -238,7 +238,7 @@ namespace DocumentSystem.Migrations
             modelBuilder.Entity("DocumentSystem.Models.Revision", b =>
                 {
                     b.HasOne("DocumentSystem.Models.Document", null)
-                        .WithMany("Revision")
+                        .WithMany("Revisions")
                         .HasForeignKey("DocumentId");
 
                     b.HasOne("DocumentSystem.Models.Node", "Node")
@@ -278,12 +278,12 @@ namespace DocumentSystem.Migrations
 
             modelBuilder.Entity("DocumentSystem.Models.Revision", b =>
                 {
-                    b.Navigation("Permission");
+                    b.Navigation("Permissions");
                 });
 
             modelBuilder.Entity("DocumentSystem.Models.Document", b =>
                 {
-                    b.Navigation("Revision");
+                    b.Navigation("Revisions");
                 });
 
             modelBuilder.Entity("DocumentSystem.Models.Folder", b =>

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace DocumentSystem.Migrations
 {
-    public partial class create_database : Migration
+    public partial class initial_create : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -27,7 +27,7 @@ namespace DocumentSystem.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "Role",
+                name: "Roles",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
@@ -36,12 +36,12 @@ namespace DocumentSystem.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Role", x => x.Id);
+                    table.PrimaryKey("PK_Roles", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "User",
+                name: "Users",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
@@ -52,7 +52,7 @@ namespace DocumentSystem.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_User", x => x.Id);
+                    table.PrimaryKey("PK_Users", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -84,9 +84,9 @@ namespace DocumentSystem.Migrations
                         principalTable: "Nodes",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Nodes_User_OwnerId",
+                        name: "FK_Nodes_Users_OwnerId",
                         column: x => x.OwnerId,
-                        principalTable: "User",
+                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -103,22 +103,22 @@ namespace DocumentSystem.Migrations
                 {
                     table.PrimaryKey("PK_RoleUser", x => new { x.RolesId, x.UsersId });
                     table.ForeignKey(
-                        name: "FK_RoleUser_Role_RolesId",
+                        name: "FK_RoleUser_Roles_RolesId",
                         column: x => x.RolesId,
-                        principalTable: "Role",
+                        principalTable: "Roles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_RoleUser_User_UsersId",
+                        name: "FK_RoleUser_Users_UsersId",
                         column: x => x.UsersId,
-                        principalTable: "User",
+                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "Revision",
+                name: "Revisions",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
@@ -128,14 +128,14 @@ namespace DocumentSystem.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Revision", x => x.Id);
+                    table.PrimaryKey("PK_Revisions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Revision_Nodes_DocumentId",
+                        name: "FK_Revisions_Nodes_DocumentId",
                         column: x => x.DocumentId,
                         principalTable: "Nodes",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Revision_Nodes_NodeId",
+                        name: "FK_Revisions_Nodes_NodeId",
                         column: x => x.NodeId,
                         principalTable: "Nodes",
                         principalColumn: "Id",
@@ -163,19 +163,19 @@ namespace DocumentSystem.Migrations
                         principalTable: "Nodes",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Permissions_Revision_RevisionId",
+                        name: "FK_Permissions_Revisions_RevisionId",
                         column: x => x.RevisionId,
-                        principalTable: "Revision",
+                        principalTable: "Revisions",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Permissions_Role_RoleId",
+                        name: "FK_Permissions_Roles_RoleId",
                         column: x => x.RoleId,
-                        principalTable: "Role",
+                        principalTable: "Roles",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Permissions_User_UserId",
+                        name: "FK_Permissions_Users_UserId",
                         column: x => x.UserId,
-                        principalTable: "User",
+                        principalTable: "Users",
                         principalColumn: "Id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
@@ -216,13 +216,13 @@ namespace DocumentSystem.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Revision_DocumentId",
-                table: "Revision",
+                name: "IX_Revisions_DocumentId",
+                table: "Revisions",
                 column: "DocumentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Revision_NodeId",
-                table: "Revision",
+                name: "IX_Revisions_NodeId",
+                table: "Revisions",
                 column: "NodeId");
 
             migrationBuilder.CreateIndex(
@@ -240,10 +240,10 @@ namespace DocumentSystem.Migrations
                 name: "RoleUser");
 
             migrationBuilder.DropTable(
-                name: "Revision");
+                name: "Revisions");
 
             migrationBuilder.DropTable(
-                name: "Role");
+                name: "Roles");
 
             migrationBuilder.DropTable(
                 name: "Nodes");
@@ -252,7 +252,7 @@ namespace DocumentSystem.Migrations
                 name: "Metadata");
 
             migrationBuilder.DropTable(
-                name: "User");
+                name: "Users");
         }
     }
 }

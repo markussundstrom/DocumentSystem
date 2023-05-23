@@ -47,7 +47,7 @@ namespace DocumentSystem.Models
 
     public class Document : Node {
         public Metadata Metadata {get; set;}
-        public List<Revision> Revision {get; set;}
+        public List<Revision> Revisions {get; set;}
     }
 
 
@@ -55,7 +55,7 @@ namespace DocumentSystem.Models
         public Guid Id {get; set;}
         public DateTime Created {get; set;}
         public Node Node {get; set;}
-        public List<Permission> Permission {get;set;}
+        public List<Permission> Permissions {get;set;}
     }
 
 
