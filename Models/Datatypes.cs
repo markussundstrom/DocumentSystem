@@ -56,6 +56,7 @@ namespace DocumentSystem.Models
         public DateTime Created {get; set;}
         public Document Document {get; set;}
         public Guid DocumentId {get; set;}
+        public Guid FileId {get; set;}
         public List<Permission> Permissions {get;set;} = new List<Permission>();
     }
 

@@ -12,9 +12,13 @@ namespace DocumentSystem.Services
     ///</summary>
     public class DocumentSystemService {
         private readonly DocumentSystemContext m_context;
+        private readonly FileService m_fileservice;
 
-        public DocumentSystemService (DocumentSystemContext context) {
+        public DocumentSystemService (
+                DocumentSystemContext context, 
+                FileService fileservice) {
             this.m_context = context;
+            this.m_fileservice = fileservice;
         }
 
         public async Task<ServiceResponse<List<NodeDTO>>> GetFolderTree(
@@ -23,7 +27,8 @@ namespace DocumentSystem.Services
                     new ServiceResponse<List<NodeDTO>>();
 
             //Check if folder exists
-            if (Id != null && ! await m_context.Folders.AnyAsync( f => f.Id == Id)) {
+            if (Id != null && ! await m_context.Folders.AnyAsync(
+                        f => f.Id == Id)) {
                 result.Success = false;
                 result.StatusCode = (HttpStatusCode)404;
                 result.Data = null;
@@ -31,15 +36,9 @@ namespace DocumentSystem.Services
                 return result;
             }
 
-            Folder folder = await m_context.Folders.Include(f => f.Contents).Where(f => f.Id == Id).SingleAsync();
-            //FIXME
-            Console.WriteLine(folder.Id);
-            Console.WriteLine(user.Id);
-            Console.WriteLine((int)PermissionMode.Read);
-            Console.WriteLine(folder.Contents);
-            foreach (Node n in folder.Contents) {
-                Console.WriteLine("c: {0} ", n.Id);
-            }
+            Folder folder = await m_context.Folders.Include(f => f.Contents)
+                .Where(f => f.Id == Id).SingleAsync();
+
             //Check if user is permitted to read folder
             if (!folder.HasPermission(user, PermissionMode.Read)) {
                 result.Success = false;
@@ -83,6 +82,52 @@ namespace DocumentSystem.Services
             return contents;
         }
 
+        ///<summary>
+        ///Method <c>CreateDocument</c> saves a new document and returns
+        ///the document information.
+        ///</summary>
+        public async Task<ServiceResponse<DocumentDTO>> CreateDocument(
+                Guid Id, IFormFile document, User user) {
+            ServiceResponse<DocumentDTO> result = 
+                new ServiceResponse<DocumentDTO>();
+
+            Folder folder = await m_context.Folders.Include(f => f.Contents)
+                .Where(f => f.Id == Id).SingleAsync();
+
+            //Check if user is permitted to write to folder
+            if (!folder.HasPermission(user, PermissionMode.Write)) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)403;
+                result.Data = null;
+                result.ErrorMessage = "User does not have permission to " + 
+                                      "write to requested folder";
+                return result;
+            }
+
+            Document newDocument = new Document {
+                Name = document.FileName,
+                Owner = user,
+                Parent = folder
+            };
+
+            Revision revision = new Revision();
+            revision.Created = DateTime.Now;
+            revision.FileId = new Guid();
+
+            newDocument.Revisions.Add(revision);
+            
+            await m_context.SaveChangesAsync();
+
+            await m_fileservice.StoreFile(revision.FileId.ToString(), document);
+            
+            DocumentDTO createdDoc = new DocumentDTO(
+                    newDocument.Id, newDocument.Name
+            );
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)201;
+            result.Data = createdDoc;
+            return result;
+        }
     }
 
 

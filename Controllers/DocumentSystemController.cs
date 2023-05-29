@@ -43,5 +43,27 @@ namespace DocumentSystem.Controllers
                 });
             }
         }
+
+        [HttpPost]
+        [Route("document/upload/{Id}")]
+        public async Task<ActionResult<DocumentDTO>> PostDocument(
+                Guid UserId, IFormFile document, Guid Id) {
+            User user = await m_context.Users.Where(u => u.Id.Equals(UserId)).SingleOrDefaultAsync();
+            if (user == null) {
+                return StatusCode((int)401, new {
+                    ErrorMessage="Not logged in"
+                });
+            }
+            ServiceResponse<DocumentDTO> result = 
+                await m_docserv.CreateDocument(Id, document, user);
+
+            if (result.Success) {
+                return Ok(result.Data);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                    ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
     }
 }
