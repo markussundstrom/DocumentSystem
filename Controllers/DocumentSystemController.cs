@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 using DocumentSystem.Services;
 using DocumentSystem.Models;
@@ -22,11 +23,16 @@ namespace DocumentSystem.Controllers
         }
 
         [HttpGet]
-        [Route("tree/{id?}")]
+        [Route("tree/{Id?}")]
         public async Task<ActionResult<FolderDTO>> GetFolderTree(
-                [FromBody] Guid UserId,
+                [FromQuery] Guid UserId,
                 Guid? Id = null) {
-            User user = m_context.Users.Where(u => u.Id == UserId).SingleOrDefault();
+            User user = await m_context.Users.Where(u => u.Id.Equals(UserId)).SingleOrDefaultAsync();
+            if (user == null) {
+                return StatusCode((int)401, new {
+                    ErrorMessage="Not logged in"
+                });
+            }
             ServiceResponse<List<NodeDTO>> result = await m_docserv.GetFolderTree(Id, user);
 
             if (result.Success) {

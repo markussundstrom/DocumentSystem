@@ -12,6 +12,7 @@ public class Program
         // Add services to the container.
 
         string connstr = builder.Configuration.GetConnectionString("DefaultConnection");
+        builder.Services.AddScoped<DocumentSystemService>();
         builder.Services.AddControllers();
         builder.Services.AddDbContext<DocumentSystemContext>(
             opt => opt.UseMySql(

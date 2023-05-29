@@ -3,6 +3,7 @@ using System;
 using DocumentSystem.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentSystem.Migrations
 {
     [DbContext(typeof(DocumentSystemContext))]
-    partial class DocumentSystemContextModelSnapshot : ModelSnapshot
+    [Migration("20230524124736_cascade_delete_on_parent_in_nodes")]
+    partial class cascade_delete_on_parent_in_nodes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -46,6 +48,9 @@ namespace DocumentSystem.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("char(36)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -57,6 +62,8 @@ namespace DocumentSystem.Migrations
                         .HasColumnType("char(36)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FolderId");
 
                     b.HasIndex("OwnerId");
 
@@ -110,12 +117,17 @@ namespace DocumentSystem.Migrations
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<Guid>("DocumentId")
+                    b.Property<Guid?>("DocumentId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("NodeId")
                         .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("NodeId");
 
                     b.ToTable("Revisions");
                 });
@@ -190,16 +202,20 @@ namespace DocumentSystem.Migrations
 
             modelBuilder.Entity("DocumentSystem.Models.Node", b =>
                 {
+                    b.HasOne("DocumentSystem.Models.Folder", null)
+                        .WithMany("Contents")
+                        .HasForeignKey("FolderId");
+
                     b.HasOne("DocumentSystem.Models.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DocumentSystem.Models.Folder", "Parent")
-                        .WithMany("Contents")
+                    b.HasOne("DocumentSystem.Models.Node", "Parent")
+                        .WithMany()
                         .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Owner");
 
@@ -231,13 +247,17 @@ namespace DocumentSystem.Migrations
 
             modelBuilder.Entity("DocumentSystem.Models.Revision", b =>
                 {
-                    b.HasOne("DocumentSystem.Models.Document", "Document")
+                    b.HasOne("DocumentSystem.Models.Document", null)
                         .WithMany("Revisions")
-                        .HasForeignKey("DocumentId")
+                        .HasForeignKey("DocumentId");
+
+                    b.HasOne("DocumentSystem.Models.Node", "Node")
+                        .WithMany()
+                        .HasForeignKey("NodeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Document");
+                    b.Navigation("Node");
                 });
 
             modelBuilder.Entity("RoleUser", b =>

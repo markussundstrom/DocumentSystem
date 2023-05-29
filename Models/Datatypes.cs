@@ -8,15 +8,15 @@ namespace DocumentSystem.Models
         [Key]
         public Guid Id {get; set;}
         public string Name {get; set;}
+        public Guid? ParentId {get; set;}
         public Node? Parent {get; set;}
         public User Owner {get; set;}
     }
 
 
     public class Folder : Node {
-        [InverseProperty("Parent")]
-        public List<Node> Contents {get; set;}
-        public List<Permission> Permissions {get; set;}
+        public List<Node> Contents {get; set;} = new List<Node>();
+        public List<Permission> Permissions {get;set;} = new List<Permission>();
 
         ///<summary>
         ///Method <c>HasPermission<c> checks if a given user has specified
@@ -46,16 +46,17 @@ namespace DocumentSystem.Models
 
 
     public class Document : Node {
-        public Metadata Metadata {get; set;}
-        public List<Revision> Revisions {get; set;}
+        public Metadata Metadata {get; set;} = new Metadata();
+        public List<Revision> Revisions {get; set;} = new List<Revision>();
     }
 
 
     public class Revision {
         public Guid Id {get; set;}
         public DateTime Created {get; set;}
-        public Node Node {get; set;}
-        public List<Permission> Permissions {get;set;}
+        public Document Document {get; set;}
+        public Guid DocumentId {get; set;}
+        public List<Permission> Permissions {get;set;} = new List<Permission>();
     }
 
 
@@ -63,7 +64,11 @@ namespace DocumentSystem.Models
         [Key]
         public Guid Id {get; set;}
         public DateTime Created {get; set;}
-        public DateTime Updated {get; set;}
+        public DateTime? Updated {get; set;}
+
+        public Metadata() {
+            Created = DateTime.Now;
+        }
     }
 
 

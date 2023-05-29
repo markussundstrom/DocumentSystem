@@ -3,6 +3,7 @@ using System;
 using DocumentSystem.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentSystem.Migrations
 {
     [DbContext(typeof(DocumentSystemContext))]
-    partial class DocumentSystemContextModelSnapshot : ModelSnapshot
+    [Migration("20230525111326_revision_rewritten_to_fix_foreign_key")]
+    partial class revision_rewritten_to_fix_foreign_key
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -46,6 +48,9 @@ namespace DocumentSystem.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("char(36)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -57,6 +62,8 @@ namespace DocumentSystem.Migrations
                         .HasColumnType("char(36)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FolderId");
 
                     b.HasIndex("OwnerId");
 
@@ -190,16 +197,20 @@ namespace DocumentSystem.Migrations
 
             modelBuilder.Entity("DocumentSystem.Models.Node", b =>
                 {
+                    b.HasOne("DocumentSystem.Models.Folder", null)
+                        .WithMany("Contents")
+                        .HasForeignKey("FolderId");
+
                     b.HasOne("DocumentSystem.Models.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DocumentSystem.Models.Folder", "Parent")
-                        .WithMany("Contents")
+                    b.HasOne("DocumentSystem.Models.Node", "Parent")
+                        .WithMany()
                         .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Owner");
 

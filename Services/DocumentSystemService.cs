@@ -31,8 +31,15 @@ namespace DocumentSystem.Services
                 return result;
             }
 
-            Folder folder = await m_context.Folders.Where(f => f.Id == Id).SingleAsync();
-
+            Folder folder = await m_context.Folders.Include(f => f.Contents).Where(f => f.Id == Id).SingleAsync();
+            //FIXME
+            Console.WriteLine(folder.Id);
+            Console.WriteLine(user.Id);
+            Console.WriteLine((int)PermissionMode.Read);
+            Console.WriteLine(folder.Contents);
+            foreach (Node n in folder.Contents) {
+                Console.WriteLine("c: {0} ", n.Id);
+            }
             //Check if user is permitted to read folder
             if (!folder.HasPermission(user, PermissionMode.Read)) {
                 result.Success = false;
@@ -58,12 +65,14 @@ namespace DocumentSystem.Services
             if (folder.HasPermission(user, PermissionMode.Read)) {
                 foreach (Node node in folder.Contents) {
                     if (node is Folder) {
+                        //Console.WriteLine(node.Name);
                         contents.Add(new FolderDTO() {
                                 Id = node.Id,
                                 Name = node.Name,
                                 Contents = await TraverseFolderTree((Folder)node, user)
                         });
                     } else if (node is Document) {
+                        //Console.WriteLine(node.Name);
                         contents.Add(new DocumentDTO() {
                                 Id = node.Id, 
                                 Name = node.Name
@@ -85,6 +94,6 @@ namespace DocumentSystem.Services
         public bool Success {get; set;}
         public HttpStatusCode StatusCode {get; set;}
         public T? Data {get; set;}
-        public String ErrorMessage {get; set;}
+        public String? ErrorMessage {get; set;}
     }
 }

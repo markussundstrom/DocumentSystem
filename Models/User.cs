@@ -9,7 +9,7 @@ namespace DocumentSystem.Models
         public Guid Id {get; set;}
         public string Name {get; set;}
         public string Password {get; set;}
-        public List<Role> Roles {get; set;}
+        public List<Role> Roles {get; set;} = new List<Role>();
     }
 
 
@@ -17,6 +17,7 @@ namespace DocumentSystem.Models
         [Key]
         public Guid Id {get; set;}
         public string Name {get; set;}
-        public List<User> Users {get; set;}
+        [InverseProperty("Roles")]
+        public List<User> Users {get; set;} 
     }
 }

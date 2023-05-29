@@ -3,6 +3,7 @@ using System;
 using DocumentSystem.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentSystem.Migrations
 {
     [DbContext(typeof(DocumentSystemContext))]
-    partial class DocumentSystemContextModelSnapshot : ModelSnapshot
+    [Migration("20230524082538_dataclasses_updated")]
+    partial class dataclasses_updated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -110,12 +112,17 @@ namespace DocumentSystem.Migrations
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<Guid>("DocumentId")
+                    b.Property<Guid?>("DocumentId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("NodeId")
                         .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("NodeId");
 
                     b.ToTable("Revisions");
                 });
@@ -198,8 +205,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasOne("DocumentSystem.Models.Folder", "Parent")
                         .WithMany("Contents")
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("ParentId");
 
                     b.Navigation("Owner");
 
@@ -231,13 +237,17 @@ namespace DocumentSystem.Migrations
 
             modelBuilder.Entity("DocumentSystem.Models.Revision", b =>
                 {
-                    b.HasOne("DocumentSystem.Models.Document", "Document")
+                    b.HasOne("DocumentSystem.Models.Document", null)
                         .WithMany("Revisions")
-                        .HasForeignKey("DocumentId")
+                        .HasForeignKey("DocumentId");
+
+                    b.HasOne("DocumentSystem.Models.Node", "Node")
+                        .WithMany()
+                        .HasForeignKey("NodeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Document");
+                    b.Navigation("Node");
                 });
 
             modelBuilder.Entity("RoleUser", b =>
