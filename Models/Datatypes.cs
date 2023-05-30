@@ -58,6 +58,26 @@ namespace DocumentSystem.Models
         public Guid DocumentId {get; set;}
         public Guid FileId {get; set;}
         public List<Permission> Permissions {get;set;} = new List<Permission>();
+
+        public bool HasPermission(User user, PermissionMode mode) {
+            if (user == this.Document.Owner) {
+                return true;
+            }
+
+            List<Permission> matchedPerms = new List<Permission>();
+
+            matchedPerms.AddRange(Permissions.Where(p => p.User == user));
+             
+            matchedPerms.AddRange(Permissions.Where(
+                    p => user.Roles.Any(q => q == p.Role)));
+                    
+            foreach (Permission perm in matchedPerms) {
+                if ((mode & perm.Mode) == perm.Mode)  {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
 

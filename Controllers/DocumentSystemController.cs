@@ -27,13 +27,16 @@ namespace DocumentSystem.Controllers
         public async Task<ActionResult<FolderDTO>> GetFolderTree(
                 [FromQuery] Guid UserId,
                 Guid? Id = null) {
-            User user = await m_context.Users.Where(u => u.Id.Equals(UserId)).SingleOrDefaultAsync();
+            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
+                .SingleOrDefaultAsync();
             if (user == null) {
                 return StatusCode((int)401, new {
                     ErrorMessage="Not logged in"
                 });
             }
-            ServiceResponse<List<NodeDTO>> result = await m_docserv.GetFolderTree(Id, user);
+
+            ServiceResponse<List<NodeDTO>> result = 
+                await m_docserv.GetFolderTree(Id, user);
 
             if (result.Success) {
                 return Ok(result.Data);
@@ -43,6 +46,32 @@ namespace DocumentSystem.Controllers
                 });
             }
         }
+
+
+        [HttpGet]
+        [Route("document/{Id}")]
+        public async Task<ActionResult> GetDocument(
+                [FromQuery] Guid UserId, Guid Id) {
+            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
+                .SingleOrDefaultAsync();
+            if (user == null) {
+                return StatusCode((int)401, new {
+                        ErrorMessage="Not logged in"
+                });
+            }
+
+            ServiceResponse<FileContentResult> result =
+                await m_docserv.RetrieveDocument(Id, user);
+
+            if (result.Success) {
+                return result.Data;
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+
 
         [HttpPost]
         [Route("document/upload/{Id}")]
@@ -58,7 +87,7 @@ namespace DocumentSystem.Controllers
                 await m_docserv.CreateDocument(Id, document, user);
 
             if (result.Success) {
-                return Ok(result.Data);
+                return StatusCode((int)result.StatusCode, result.Data);
             } else {
                 return StatusCode((int)result.StatusCode, new {
                     ErrorMessage = result.ErrorMessage

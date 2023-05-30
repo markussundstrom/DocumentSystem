@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 
 using DocumentSystem.Models;
 
@@ -82,6 +83,80 @@ namespace DocumentSystem.Services
             return contents;
         }
 
+
+        ///<summary>
+        ///Method <c>RetrieveDocument</c> retrieves and returns a given 
+        ///document from storage.
+        ///</summary>
+        public async Task<ServiceResponse<FileContentResult>> RetrieveDocument(
+                Guid Id, User user, Guid? RevId = null) {
+            ServiceResponse<FileContentResult> result =
+                new ServiceResponse<FileContentResult>();
+
+            Document? document = await m_context.Documents.Include(
+                    d => d.Revisions).Where(d => d.Id == Id)
+                    .SingleOrDefaultAsync();
+
+            if (document == null) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)404;
+                result.ErrorMessage = "Document not found.";
+                return result;
+            }
+
+            Revision latestRev = document.Revisions.OrderByDescending(
+                    r => r.Created).FirstOrDefault();
+
+            if (!latestRev.HasPermission(user, PermissionMode.Read)) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)403;
+                result.ErrorMessage = "User does not have permission to read "
+                    + "requested document.";
+                return result;
+            }
+            
+            Revision? requestedRev;
+            if (RevId != null) {
+                requestedRev = document.Revisions.Where(
+                        r => r.Id == RevId).SingleOrDefault();
+                if (requestedRev == null) {
+                    result.Success = false;
+                    result.StatusCode = (HttpStatusCode)404;
+                    result.ErrorMessage = "Requested document revision was "
+                        + "not found.";
+                    return result;
+                }
+                if (!requestedRev.HasPermission(user, PermissionMode.Read)) {
+                    result.Success = false;
+                    result.StatusCode = (HttpStatusCode)403;
+                    result.ErrorMessage = "User does not have permission to "
+                        + "read requested document revision.";
+                    return result;
+                }
+            } else {
+                requestedRev = latestRev;
+            }
+
+            byte[] fileContents;
+            try {
+                fileContents = m_fileservice.GetFile(
+                        requestedRev.FileId.ToString());
+            } catch (Exception e) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)500;
+                result.ErrorMessage = e.Message;
+                return result;
+            }
+
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)200;
+            result.Data = new FileContentResult(
+                    fileContents, "application/octet-stream");
+            result.Data.FileDownloadName = document.Name;
+            return result;
+        }
+
+
         ///<summary>
         ///Method <c>CreateDocument</c> saves a new document and returns
         ///the document information.
@@ -110,9 +185,11 @@ namespace DocumentSystem.Services
                 Parent = folder
             };
 
+            m_context.Documents.Add(newDocument);
+
             Revision revision = new Revision();
             revision.Created = DateTime.Now;
-            revision.FileId = new Guid();
+            revision.FileId = Guid.NewGuid();
 
             newDocument.Revisions.Add(revision);
             

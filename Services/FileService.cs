@@ -14,7 +14,9 @@ namespace DocumentSystem.Services
                     AppDomain.CurrentDomain.BaseDirectory,
                     "App_Data", "DocumentStorage"
             );
+            Directory.CreateDirectory(m_storagePath);
         }
+
 
         public async Task StoreFile(string fileName, IFormFile file) {
             string filePath = Path.Combine(m_storagePath, fileName);
@@ -25,6 +27,18 @@ namespace DocumentSystem.Services
                 await file.CopyToAsync(stream);
             }
             return;
+        }
+
+
+        public byte[] GetFile(string fileName) {
+            string filePath = Path.Combine(m_storagePath, fileName);
+            if (!File.Exists(filePath)) {
+                throw new ArgumentException("File not found in storage");
+            }
+            //FileStream stream = new FileStream(
+            //        filePath, FileMode.Open, FileAccess.Read);
+            byte[] fileContents = File.ReadAllBytes(filePath);
+            return fileContents;
         }
     }
 }
