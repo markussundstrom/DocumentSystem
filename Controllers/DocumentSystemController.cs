@@ -49,6 +49,29 @@ namespace DocumentSystem.Controllers
 
 
         [HttpGet]
+        [Route("documentinfo/{Id}")]
+        public async Task<ActionResult> GetDocumentInfo (
+                [FromQuery] Guid UserId, Guid Id) {
+            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
+                .SingleOrDefaultAsync();
+            if (user == null) {
+                return StatusCode((int)401, new {
+                        ErrorMessage = "Not logged in"
+                });
+            }
+
+            ServiceResponse<DocumentInfoDTO> result = 
+                await m_docserv.GetDocumentInfo(Id, user);
+
+            if (result.Success) {
+                return Ok(result.Data);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+        [HttpGet]
         [Route("document/{Id}")]
         public async Task<ActionResult> GetDocument(
                 [FromQuery] Guid UserId, Guid Id) {
