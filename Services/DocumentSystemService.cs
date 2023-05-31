@@ -259,6 +259,55 @@ namespace DocumentSystem.Services
             result.Data = createdDoc;
             return result;
         }
+
+
+        ///<summary>
+        ///Method <c>Folder</c> creates a new subfolder within the given folder
+        ///</summary>
+        public async Task<ServiceResponse<FolderDTO>> CreateFolder(
+                Guid Id, string name, User user) {
+            ServiceResponse<FolderDTO> result = 
+                new ServiceResponse<FolderDTO>();
+
+            Folder? parentFolder = await m_context.Folders.Include(
+                    f => f.Contents).Where(f => f.Id == Id)
+                    .SingleOrDefaultAsync();
+
+            if (parentFolder == null) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)404;
+                result.ErrorMessage = "Requested parent folder not found.";
+                return result;
+            }
+
+            if (!parentFolder.HasPermission(user, PermissionMode.Write)) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)403;
+                result.ErrorMessage = "User does not have write permission"
+                    + " for requested parent folder";
+                return result;
+            }
+
+            if (String.IsNullOrEmpty(name)) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)400;
+                result.ErrorMessage = "Name for the new folder is required";
+                return result;
+            }
+
+            Folder newFolder = new Folder{Name = name, Parent = parentFolder};
+            m_context.Folders.Add(newFolder);
+            await m_context.SaveChangesAsync();
+
+            FolderDTO createdFolder = new FolderDTO {
+                Name = newFolder.Name, Contents = new List<NodeDTO>()
+            };
+
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)201;
+            result.Data = createdFolder;
+            return result;
+        }
     }
 
 
