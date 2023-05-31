@@ -85,6 +85,60 @@ namespace DocumentSystem.Services
 
 
         ///<summary>
+        ///Method <c>GetDocumentInfo</c>  returns document information such 
+        ///as metadata and revision history for a given document.
+        ///</summary>
+        public async Task<ServiceResponse<DocumentInfoDTO>> GetDocumentInfo(
+                Guid Id, User user) {
+            ServiceResponse<DocumentInfoDTO> result = 
+                new ServiceResponse<DocumentInfoDTO>();
+
+            Document? document = await m_context.Documents.Include(
+                    d => d.Revisions).Include(d => d.Metadata).Where(
+                    d => d.Id == Id).SingleOrDefaultAsync();
+
+            if (document == null) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)404;
+                result.ErrorMessage = "Document not found.";
+                return result;
+            }
+
+            Revision latestRev = document.Revisions.OrderByDescending(
+                    r => r.Created).FirstOrDefault();
+
+            if (!latestRev.HasPermission(user, PermissionMode.Read)) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)403;
+                result.ErrorMessage = "User does not have permission to read "
+                    + "requested document.";
+                return result;
+            }
+
+            DocumentInfoDTO docInfo = new DocumentInfoDTO();
+            docInfo.Metadata = new MetadataDTO{
+                Created = document.Metadata.Created,
+                Updated = document.Metadata.Updated
+            };
+
+            foreach (Revision rev in document.Revisions) {
+                if (rev.HasPermission(user, PermissionMode.Read)) {
+                    docInfo.Revisions.Add(
+                        new RevisionDTO{
+                            Id = rev.Id,
+                            Created = rev.Created
+                    });
+                }
+            }
+
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)200;
+            result.Data = docInfo;
+            return result;
+        }
+
+
+        ///<summary>
         ///Method <c>RetrieveDocument</c> retrieves and returns a given 
         ///document from storage.
         ///</summary>

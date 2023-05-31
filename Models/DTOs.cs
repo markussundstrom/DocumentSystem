@@ -20,4 +20,22 @@ namespace DocumentSystem.Models
         public DocumentDTO() {}
         public DocumentDTO(Guid id, string name) : base(id, name) {}
     }
+
+
+    public class DocumentInfoDTO : NodeDTO {
+        public List<RevisionDTO> Revisions {get;set;} = new List<RevisionDTO>();
+        public MetadataDTO Metadata {get; set;}
+    }
+
+
+    public class RevisionDTO {
+        public Guid Id {get; set;}
+        public DateTime Created {get; set;}
+    }
+
+
+    public class MetadataDTO {
+        public DateTime Created;
+        public DateTime? Updated;
+    }    
 }
