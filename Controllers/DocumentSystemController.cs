@@ -49,7 +49,7 @@ namespace DocumentSystem.Controllers
 
 
         [HttpGet]
-        [Route("documentinfo/{Id}")]
+        [Route("document/metadata/{Id}")]
         public async Task<ActionResult> GetDocumentInfo (
                 [FromQuery] Guid UserId, Guid Id) {
             User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
@@ -72,7 +72,7 @@ namespace DocumentSystem.Controllers
             }
         }
         [HttpGet]
-        [Route("document/{Id}")]
+        [Route("document/download/{Id}")]
         public async Task<ActionResult> GetDocument(
                 [FromQuery] Guid UserId, Guid Id) {
             User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
@@ -125,7 +125,8 @@ namespace DocumentSystem.Controllers
         [Route("folder/create/{Id}")]
         public async Task<ActionResult<FolderDTO>> PostFolder(
                 [FromQuery] Guid UserId, string Name, Guid Id) {
-            User user = await m_context.Users.Where(u => u.Id.Equals(UserId)).SingleOrDefaultAsync();
+            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
+                .SingleOrDefaultAsync();
             if (user == null) {
                 return StatusCode((int)401, new {
                     ErrorMessage="Not logged in"
@@ -144,7 +145,54 @@ namespace DocumentSystem.Controllers
             }
         }
 
+/*
+        [HttpPatch]
+        [Route("folder/update/{Id}")]
+        public async Task<ActionResult<FolderDTO>> PatchFolder(
+                [FromQuery] Guid UserId, FolderDTO folder, Guid Id) {
+            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
+                .SingleOrDefaultAsync();
+            if (user == null) {
+                return StatusCode((int)401, new {
+                        ErrorMessage="Not logged in"
+                });
+            }
 
+            ServiceResponse<FolderDTO> result = 
+                await m_docserv.UpdateFolder(Id, folder, user);
 
+            if (result.Success) {
+                return StatusCode((int)result.StatusCode, result.Data);
+            } else {
+                return StatusCode ((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+
+*/
+        [HttpPut]
+        [Route("document/update/{Id}")]
+        public async Task<ActionResult<DocumentDTO>> PutDocument(
+                [FromQuery] Guid UserId, IFormFile document, Guid Id) {
+            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
+                .SingleOrDefaultAsync();
+            if (user == null) {
+                return StatusCode((int)401, new {
+                        ErrorMessage="Not logged in"
+                });
+            }
+
+            ServiceResponse<DocumentDTO> result =
+                await m_docserv.UpdateDocument(Id, document, user);
+
+            if (result.Success) {
+                return StatusCode((int)result.StatusCode, result.Data);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
     }
 }

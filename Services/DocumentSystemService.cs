@@ -22,6 +22,7 @@ namespace DocumentSystem.Services
             this.m_fileservice = fileservice;
         }
 
+
         public async Task<ServiceResponse<List<NodeDTO>>> GetFolderTree(
                 Guid? Id, User user) {
             ServiceResponse<List<NodeDTO>> result = 
@@ -30,11 +31,7 @@ namespace DocumentSystem.Services
             //Check if folder exists
             if (Id != null && ! await m_context.Folders.AnyAsync(
                         f => f.Id == Id)) {
-                result.Success = false;
-                result.StatusCode = (HttpStatusCode)404;
-                result.Data = null;
-                result.ErrorMessage = "Requested folder not found";
-                return result;
+                return ErrorResponse(result, 404, "folder");
             }
 
             Folder folder = await m_context.Folders.Include(f => f.Contents)
@@ -42,13 +39,9 @@ namespace DocumentSystem.Services
 
             //Check if user is permitted to read folder
             if (!folder.HasPermission(user, PermissionMode.Read)) {
-                result.Success = false;
-                result.StatusCode = (HttpStatusCode)403;
-                result.Data = null;
-                result.ErrorMessage = "User does not have permission to " + 
-                                      "read requested folder";
-                return result;
+                return ErrorResponse(result, 403, "folder");
             }
+
             List<NodeDTO> tree = await TraverseFolderTree(folder, user);
             result.Success = true;
             result.StatusCode = (HttpStatusCode)200;
@@ -60,27 +53,56 @@ namespace DocumentSystem.Services
         ///Method <c>TraverseFolderTree<c> Traverses a folder tree recursively
         ///</summary>
         ///<returns>A FolderDTO containing the folder tree</returns>
-        private async Task<List<NodeDTO>> TraverseFolderTree(Folder folder, User user) {
+        private async Task<List<NodeDTO>> TraverseFolderTree(
+                Folder folder, User user) {
             List<NodeDTO> contents = new List<NodeDTO>();
             if (folder.HasPermission(user, PermissionMode.Read)) {
                 foreach (Node node in folder.Contents) {
                     if (node is Folder) {
-                        //Console.WriteLine(node.Name);
+                            
                         contents.Add(new FolderDTO() {
                                 Id = node.Id,
                                 Name = node.Name,
-                                Contents = await TraverseFolderTree((Folder)node, user)
+                                Permissions = await GetPermissionDTOList(node),
+                                Contents = await TraverseFolderTree(
+                                        (Folder)node, user)
                         });
                     } else if (node is Document) {
-                        //Console.WriteLine(node.Name);
                         contents.Add(new DocumentDTO() {
                                 Id = node.Id, 
-                                Name = node.Name
+                                Name = node.Name,
+                                Permissions = await GetPermissionDTOList(node)
                         });
                     }
                 }
             }
             return contents;
+        }
+
+        ///<summary>
+        ///Method <c>GetPermissionDTOList<c> returns a list of permissions for
+        ///a given node
+        ///</summary>
+        private async Task<List<PermissionDTO>> GetPermissionDTOList(Node node) {
+            List<PermissionDTO> dtoPerm = new List<PermissionDTO>();
+            List<Permission> permissions = new List<Permission>();
+            if (node is Folder folder) {
+                permissions.AddRange(folder.Permissions);
+            } else if (node is Document document) {
+                Revision latestRev = document.Revisions.OrderByDescending(
+                        d => d.Created).First();
+                permissions.AddRange(latestRev.Permissions);
+            }
+            foreach (Permission p in permissions) {
+                PermissionDTO pd = new PermissionDTO{ Mode = p.Mode};
+                if (p.Role != null) {
+                    pd.Role = new RoleDTO{Name = p.Role.Name, Id = p.Role.Id};
+                } else if (p.User != null) {
+                    pd.User = new UserDTO{Name = p.User.Name, Id = p.User.Id};
+                }
+                dtoPerm.Add(pd);
+            }
+            return dtoPerm;
         }
 
 
@@ -98,21 +120,14 @@ namespace DocumentSystem.Services
                     d => d.Id == Id).SingleOrDefaultAsync();
 
             if (document == null) {
-                result.Success = false;
-                result.StatusCode = (HttpStatusCode)404;
-                result.ErrorMessage = "Document not found.";
-                return result;
+                return ErrorResponse(result, 404, "document");
             }
 
             Revision latestRev = document.Revisions.OrderByDescending(
                     r => r.Created).FirstOrDefault();
 
             if (!latestRev.HasPermission(user, PermissionMode.Read)) {
-                result.Success = false;
-                result.StatusCode = (HttpStatusCode)403;
-                result.ErrorMessage = "User does not have permission to read "
-                    + "requested document.";
-                return result;
+                return ErrorResponse(result, 403, "document");
             }
 
             DocumentInfoDTO docInfo = new DocumentInfoDTO();
@@ -152,21 +167,14 @@ namespace DocumentSystem.Services
                     .SingleOrDefaultAsync();
 
             if (document == null) {
-                result.Success = false;
-                result.StatusCode = (HttpStatusCode)404;
-                result.ErrorMessage = "Document not found.";
-                return result;
+                return ErrorResponse(result, 404, "document");
             }
 
             Revision latestRev = document.Revisions.OrderByDescending(
                     r => r.Created).FirstOrDefault();
 
             if (!latestRev.HasPermission(user, PermissionMode.Read)) {
-                result.Success = false;
-                result.StatusCode = (HttpStatusCode)403;
-                result.ErrorMessage = "User does not have permission to read "
-                    + "requested document.";
-                return result;
+                return ErrorResponse(result, 403, "document");
             }
             
             Revision? requestedRev;
@@ -174,18 +182,10 @@ namespace DocumentSystem.Services
                 requestedRev = document.Revisions.Where(
                         r => r.Id == RevId).SingleOrDefault();
                 if (requestedRev == null) {
-                    result.Success = false;
-                    result.StatusCode = (HttpStatusCode)404;
-                    result.ErrorMessage = "Requested document revision was "
-                        + "not found.";
-                    return result;
+                    return ErrorResponse(result, 404, "document revision");
                 }
                 if (!requestedRev.HasPermission(user, PermissionMode.Read)) {
-                    result.Success = false;
-                    result.StatusCode = (HttpStatusCode)403;
-                    result.ErrorMessage = "User does not have permission to "
-                        + "read requested document revision.";
-                    return result;
+                    return ErrorResponse(result, 403, "document revision");
                 }
             } else {
                 requestedRev = latestRev;
@@ -216,25 +216,25 @@ namespace DocumentSystem.Services
         ///the document information.
         ///</summary>
         public async Task<ServiceResponse<DocumentDTO>> CreateDocument(
-                Guid Id, IFormFile document, User user) {
+                Guid Id, IFormFile file, User user) {
             ServiceResponse<DocumentDTO> result = 
                 new ServiceResponse<DocumentDTO>();
 
             Folder folder = await m_context.Folders.Include(f => f.Contents)
                 .Where(f => f.Id == Id).SingleAsync();
 
+            //FIXME
+            //Folder exists?
+            //
             //Check if user is permitted to write to folder
             if (!folder.HasPermission(user, PermissionMode.Write)) {
-                result.Success = false;
-                result.StatusCode = (HttpStatusCode)403;
-                result.Data = null;
-                result.ErrorMessage = "User does not have permission to " + 
-                                      "write to requested folder";
-                return result;
+                return ErrorResponse(result, 403, "folder");
             }
 
+            DateTime now = DateTime.Now;
+
             Document newDocument = new Document {
-                Name = document.FileName,
+                Name = file.FileName,
                 Owner = user,
                 Parent = folder
             };
@@ -242,15 +242,16 @@ namespace DocumentSystem.Services
             m_context.Documents.Add(newDocument);
 
             Revision revision = new Revision();
-            revision.Created = DateTime.Now;
+            revision.Created = now;
             revision.FileId = Guid.NewGuid();
 
             newDocument.Revisions.Add(revision);
+            newDocument.Metadata = new Metadata{Created = now};
+            
+            await m_fileservice.StoreFile(revision.FileId.ToString(), file);
             
             await m_context.SaveChangesAsync();
 
-            await m_fileservice.StoreFile(revision.FileId.ToString(), document);
-            
             DocumentDTO createdDoc = new DocumentDTO(
                     newDocument.Id, newDocument.Name
             );
@@ -274,18 +275,11 @@ namespace DocumentSystem.Services
                     .SingleOrDefaultAsync();
 
             if (parentFolder == null) {
-                result.Success = false;
-                result.StatusCode = (HttpStatusCode)404;
-                result.ErrorMessage = "Requested parent folder not found.";
-                return result;
+                return ErrorResponse(result, 404, "folder");
             }
 
             if (!parentFolder.HasPermission(user, PermissionMode.Write)) {
-                result.Success = false;
-                result.StatusCode = (HttpStatusCode)403;
-                result.ErrorMessage = "User does not have write permission"
-                    + " for requested parent folder";
-                return result;
+                return ErrorResponse(result, 403, "folder");
             }
 
             if (String.IsNullOrEmpty(name)) {
@@ -307,6 +301,70 @@ namespace DocumentSystem.Services
             result.StatusCode = (HttpStatusCode)201;
             result.Data = createdFolder;
             return result;
+        }
+
+
+        ///<summary>
+        ///Method <c>UpdateDocument</c> recieves a file for an existing
+        ///document, and creates a new revision pointing to the new file.
+        ///</summary>
+        public async Task<ServiceResponse<DocumentDTO>> UpdateDocument(
+                Guid Id, IFormFile file, User user) {
+            ServiceResponse<DocumentDTO> result = 
+                new ServiceResponse<DocumentDTO>();
+
+            Document? document = await m_context.Documents.Include(
+                    d => d.Revisions).Include(d => d.Metadata)
+                    .Where(d => d.Id == Id).SingleOrDefaultAsync();
+
+            if (document == null) {
+                return ErrorResponse(result, 404, "document");
+            }
+
+            Revision latestRev = document.Revisions.OrderByDescending(
+                r => r.Created).FirstOrDefault();
+
+            if (!latestRev.HasPermission(user, PermissionMode.Write)) {
+                return ErrorResponse(result, 403, "document");
+            }
+
+            DateTime now = DateTime.Now;
+
+            Revision newRev = new Revision{
+                Created = now, FileId = Guid.NewGuid()
+            };
+            document.Revisions.Add(newRev);
+            document.Metadata.Updated = now;
+
+            await m_fileservice.StoreFile(newRev.FileId.ToString(), file);
+
+            await m_context.SaveChangesAsync();
+
+            DocumentDTO modifiedDoc =
+                new DocumentDTO(document.Id, document.Name);
+
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)200;
+            result.Data = modifiedDoc;
+            return result;
+        }
+
+
+        ///<summary>
+        ///Method <c>ErrorResponse</c> is a helper method that populates
+        ///a ServiceResponse<T> object with error information.
+        ///</summary>
+        private ServiceResponse<T> ErrorResponse<T>(
+                ServiceResponse<T> response, int code, string errorObj) {
+            response.Success = false;
+            response.StatusCode = (HttpStatusCode)code;
+            response.ErrorMessage = code switch {
+                403 => "User does not have sufficient permission for " +
+                       "requested operation on " + errorObj + ".",
+                404 => "Unable to find requested " + errorObj + ".",
+                _   => "Error"
+            };
+            return response;
         }
     }
 

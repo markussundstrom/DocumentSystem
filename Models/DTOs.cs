@@ -13,12 +13,14 @@ namespace DocumentSystem.Models
 
     public class FolderDTO : NodeDTO {
         public List<NodeDTO> Contents {get; set;}
+        public List<PermissionDTO> Permissions {get; set;}
     }
 
 
     public class DocumentDTO : NodeDTO {
         public DocumentDTO() {}
         public DocumentDTO(Guid id, string name) : base(id, name) {}
+        public List<PermissionDTO> Permissions {get; set;}
     }
 
 
@@ -38,4 +40,20 @@ namespace DocumentSystem.Models
         public DateTime Created;
         public DateTime? Updated;
     }    
+
+    public class PermissionDTO {
+        public RoleDTO? Role {get; set;}
+        public UserDTO? User {get; set;}
+        public PermissionMode Mode {get; set;}
+    }
+
+    public class RoleDTO {
+        public Guid Id {get; set;}
+        public string Name {get; set;}
+    }
+
+    public class UserDTO {
+        public Guid Id {get; set;}
+        public string Name {get; set;}
+    }
 }
