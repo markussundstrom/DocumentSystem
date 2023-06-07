@@ -15,20 +15,32 @@ namespace DocumentSystem.Models
                 .HasOne(n => n.Parent)
                 .WithMany()
                 .HasForeignKey(n => n.ParentId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder
                 .Entity<Folder>()
                 .HasMany(f => f.Contents)
                 .WithOne(n => n.Parent as Folder)
                 .HasForeignKey(n => n.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder
                 .Entity<Revision>()
                 .HasOne(r => r.Document)
                 .WithMany(d => d.Revisions)
                 .HasForeignKey(r => r.DocumentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder
+                .Entity<Folder>()
+                .HasMany(f => f.Permissions)
+                .WithOne()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder
+                .Entity<Revision>()
+                .HasMany(r => r.Permissions)
+                .WithOne()
                 .OnDelete(DeleteBehavior.Cascade);
         }
 
@@ -52,25 +64,28 @@ namespace DocumentSystem.Models
                 return;
             }
 
+
             context.Roles.Add(new Role{Name="Anyone"});
-            context.Roles.Add(new Role{Name="office"});
-            context.Roles.Add(new Role{Name="management"});
             context.SaveChanges();
 
             
             var users = new User[] {
-                new User{Name="user1",Password="12345"},
-                new User{Name="user2",Password="12345"}
+                new User{Name="admin",Password="12345"},
+                new User{Name="user1",Password="12345"}
             };
-
-            users[0].Roles.Add(context.Roles.Where(r => r.Name.Equals("management")).Single());
-            users[1].Roles.Add(context.Roles.Where(r => r.Name.Equals("office")).Single());
 
             foreach(User u in users) {
                 u.Roles.Add(context.Roles.Where(r => r.Name.Equals("Anyone")).Single());
                 context.Users.Add(u);
             }
 
+            context.SaveChanges();
+
+            Folder dr = new Folder{Name = "DocumentRoot", Owner = users[0]};
+            dr.Permissions.Add(new Permission{Role = context.Roles
+                    .Where(r => r.Name.Equals("Anyone")).Single(), 
+                    Mode = PermissionMode.Read | PermissionMode.Write});
+            context.Folders.Add(dr);
             context.SaveChanges();
             return;
         }

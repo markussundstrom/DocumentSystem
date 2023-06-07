@@ -9,8 +9,8 @@ namespace DocumentSystem.Models
         public Guid Id {get; set;}
         public string Name {get; set;}
         public Guid? ParentId {get; set;}
-        public Node? Parent {get; set;}
-        public User Owner {get; set;}
+        public Folder? Parent {get; set;}
+        public User? Owner {get; set;}
     }
 
 
@@ -33,10 +33,11 @@ namespace DocumentSystem.Models
             matchedPerms.AddRange(Permissions.Where(p => p.User == user));
              
             matchedPerms.AddRange(Permissions.Where(
-                    p => user.Roles.Any(q => q == p.Role)));
-                    
+                    p => user.Roles.Any(q => q.Id == p.Role.Id)));
+
             foreach (Permission perm in matchedPerms) {
-                if ((mode & perm.Mode) == perm.Mode)  {
+                if (((int)mode & (int)perm.Mode) == 
+                        (int)mode)  {
                     return true;
                 }
             }
@@ -69,10 +70,10 @@ namespace DocumentSystem.Models
             matchedPerms.AddRange(Permissions.Where(p => p.User == user));
              
             matchedPerms.AddRange(Permissions.Where(
-                    p => user.Roles.Any(q => q == p.Role)));
+                    p => user.Roles.Any(q => q.Id == p.Role.Id)));
                     
             foreach (Permission perm in matchedPerms) {
-                if ((mode & perm.Mode) == perm.Mode)  {
+                if (((int)mode & (int)perm.Mode) == (int)mode)  {
                     return true;
                 }
             }
@@ -104,6 +105,7 @@ namespace DocumentSystem.Models
 
     public enum PermissionMode {
         None = 0,
+        Admin = 1,
         Write = 2,
         Read = 4
     }

@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using DocumentSystem.Models;
 
 namespace DocumentSystem.Services
-
 {
     ///<summary>
     ///Class <c>DocumentSystemService</c> receives requests for operations 
@@ -35,7 +34,8 @@ namespace DocumentSystem.Services
             }
 
             Folder folder = await m_context.Folders.Include(f => f.Contents)
-                .Where(f => f.Id == Id).SingleAsync();
+                .Include(f => f.Permissions).Where(f => f.Id == Id)
+                .SingleAsync();
 
             //Check if user is permitted to read folder
             if (!folder.HasPermission(user, PermissionMode.Read)) {
@@ -49,61 +49,6 @@ namespace DocumentSystem.Services
             return result;
         }
 
-        ///<summary>
-        ///Method <c>TraverseFolderTree<c> Traverses a folder tree recursively
-        ///</summary>
-        ///<returns>A FolderDTO containing the folder tree</returns>
-        private async Task<List<NodeDTO>> TraverseFolderTree(
-                Folder folder, User user) {
-            List<NodeDTO> contents = new List<NodeDTO>();
-            if (folder.HasPermission(user, PermissionMode.Read)) {
-                foreach (Node node in folder.Contents) {
-                    if (node is Folder) {
-                            
-                        contents.Add(new FolderDTO() {
-                                Id = node.Id,
-                                Name = node.Name,
-                                Permissions = await GetPermissionDTOList(node),
-                                Contents = await TraverseFolderTree(
-                                        (Folder)node, user)
-                        });
-                    } else if (node is Document) {
-                        contents.Add(new DocumentDTO() {
-                                Id = node.Id, 
-                                Name = node.Name,
-                                Permissions = await GetPermissionDTOList(node)
-                        });
-                    }
-                }
-            }
-            return contents;
-        }
-
-        ///<summary>
-        ///Method <c>GetPermissionDTOList<c> returns a list of permissions for
-        ///a given node
-        ///</summary>
-        private async Task<List<PermissionDTO>> GetPermissionDTOList(Node node) {
-            List<PermissionDTO> dtoPerm = new List<PermissionDTO>();
-            List<Permission> permissions = new List<Permission>();
-            if (node is Folder folder) {
-                permissions.AddRange(folder.Permissions);
-            } else if (node is Document document) {
-                Revision latestRev = document.Revisions.OrderByDescending(
-                        d => d.Created).First();
-                permissions.AddRange(latestRev.Permissions);
-            }
-            foreach (Permission p in permissions) {
-                PermissionDTO pd = new PermissionDTO{ Mode = p.Mode};
-                if (p.Role != null) {
-                    pd.Role = new RoleDTO{Name = p.Role.Name, Id = p.Role.Id};
-                } else if (p.User != null) {
-                    pd.User = new UserDTO{Name = p.User.Name, Id = p.User.Id};
-                }
-                dtoPerm.Add(pd);
-            }
-            return dtoPerm;
-        }
 
 
         ///<summary>
@@ -114,7 +59,6 @@ namespace DocumentSystem.Services
                 Guid Id, User user) {
             ServiceResponse<DocumentInfoDTO> result = 
                 new ServiceResponse<DocumentInfoDTO>();
-
             Document? document = await m_context.Documents.Include(
                     d => d.Revisions).Include(d => d.Metadata).Where(
                     d => d.Id == Id).SingleOrDefaultAsync();
@@ -123,8 +67,9 @@ namespace DocumentSystem.Services
                 return ErrorResponse(result, 404, "document");
             }
 
-            Revision latestRev = document.Revisions.OrderByDescending(
-                    r => r.Created).FirstOrDefault();
+            Revision latestRev = document.Revisions
+                .OrderByDescending(r => r.Created).FirstOrDefault();
+            m_context.Entry(latestRev).Collection(r => r.Permissions).Load();
 
             if (!latestRev.HasPermission(user, PermissionMode.Read)) {
                 return ErrorResponse(result, 403, "document");
@@ -170,8 +115,9 @@ namespace DocumentSystem.Services
                 return ErrorResponse(result, 404, "document");
             }
 
-            Revision latestRev = document.Revisions.OrderByDescending(
-                    r => r.Created).FirstOrDefault();
+            Revision latestRev = document.Revisions
+                .OrderByDescending(r => r.Created).FirstOrDefault();
+            m_context.Entry(latestRev).Collection(r => r.Permissions).Load();
 
             if (!latestRev.HasPermission(user, PermissionMode.Read)) {
                 return ErrorResponse(result, 403, "document");
@@ -221,11 +167,13 @@ namespace DocumentSystem.Services
                 new ServiceResponse<DocumentDTO>();
 
             Folder folder = await m_context.Folders.Include(f => f.Contents)
+                .Include(f => f.Permissions)
                 .Where(f => f.Id == Id).SingleAsync();
 
-            //FIXME
-            //Folder exists?
-            //
+            if (folder == null) {
+                return ErrorResponse(result, 404, "folder");
+            }
+
             //Check if user is permitted to write to folder
             if (!folder.HasPermission(user, PermissionMode.Write)) {
                 return ErrorResponse(result, 403, "folder");
@@ -270,9 +218,9 @@ namespace DocumentSystem.Services
             ServiceResponse<FolderDTO> result = 
                 new ServiceResponse<FolderDTO>();
 
-            Folder? parentFolder = await m_context.Folders.Include(
-                    f => f.Contents).Where(f => f.Id == Id)
-                    .SingleOrDefaultAsync();
+            Folder? parentFolder = await m_context.Folders
+                .Include(f => f.Contents).Include(f => f.Permissions)
+                .Where(f => f.Id == Id).SingleOrDefaultAsync();
 
             if (parentFolder == null) {
                 return ErrorResponse(result, 404, "folder");
@@ -289,7 +237,8 @@ namespace DocumentSystem.Services
                 return result;
             }
 
-            Folder newFolder = new Folder{Name = name, Parent = parentFolder};
+            Folder newFolder = new Folder{Name = name, Parent = parentFolder,
+                    Owner = user};
             m_context.Folders.Add(newFolder);
             await m_context.SaveChangesAsync();
 
@@ -321,8 +270,9 @@ namespace DocumentSystem.Services
                 return ErrorResponse(result, 404, "document");
             }
 
-            Revision latestRev = document.Revisions.OrderByDescending(
-                r => r.Created).FirstOrDefault();
+            Revision latestRev = document.Revisions
+                .OrderByDescending(r => r.Created).FirstOrDefault();
+            m_context.Entry(latestRev).Collection(r => r.Permissions).Load();
 
             if (!latestRev.HasPermission(user, PermissionMode.Write)) {
                 return ErrorResponse(result, 403, "document");
@@ -348,6 +298,237 @@ namespace DocumentSystem.Services
             result.Data = modifiedDoc;
             return result;
         }
+
+
+        ///<summary>
+        ///Method <c>SearchTree</c> searches folders and documents 
+        ///according to a given search critera and returns the result
+        ///</summary>
+        public async Task<ServiceResponse<List<SearchResultDTO>>> SearchTree(
+                Guid Id, SearchCriteriaDTO query, User user) {
+            ServiceResponse<List<SearchResultDTO>> result = 
+                new ServiceResponse<List<SearchResultDTO>>();
+
+            Folder? folder = await m_context.Folders.Include(f => f.Contents)
+                .Include(f => f.Permissions).Where(f => f.Id == Id)
+                .SingleOrDefaultAsync();
+
+            if (folder == null) {
+                return ErrorResponse(result, 404, "folder");
+            }
+
+            if (!folder.HasPermission(user, PermissionMode.Read)) {
+                return ErrorResponse(result, 403, "folder");
+            }
+
+            List<Node>filteredNodes = await FilterNodes(
+                    folder, user, query);
+
+            List<SearchResultDTO> searchResults = new  List<SearchResultDTO>();
+            foreach (Node node in filteredNodes) {
+                SearchResultDTO resultLine = new SearchResultDTO();
+                resultLine.Node = new NodeDTO(node.Id, node.Name);
+                List<string> pathElements = new List<string>();
+                Folder? parent = node.Parent;
+                while (parent != null) {
+                    pathElements.Add(parent.Name);
+                    parent = parent.Parent;
+                }
+                pathElements.Reverse();
+                string path = string.Join("/", pathElements);
+                path = "/" + path;
+                resultLine.Location = path;
+                searchResults.Add(resultLine);
+            }
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)200;
+            result.Data = searchResults;
+            return result;
+        }
+
+
+        ///<summary>
+        ///Method <c>TraverseFolderTree<c> Traverses a folder tree recursively
+        ///</summary>
+        ///<returns>A List of NodeDTO:s representing the content.</returns>
+        private async Task<List<NodeDTO>> TraverseFolderTree(
+                Folder folder, User user) {
+            List<NodeDTO> contents = new List<NodeDTO>();
+            if (folder.HasPermission(user, PermissionMode.Read)) {
+                foreach (Node node in folder.Contents) {
+                    if (node is Folder) {
+                        m_context.Entry(folder).Collection(
+                                f => f.Permissions).Load();
+                        contents.Add(new FolderDTO() {
+                                Id = node.Id,
+                                Name = node.Name,
+                                Permissions = await GetPermissionDTOList(node),
+                                Contents = await TraverseFolderTree(
+                                        (Folder)node, user)
+                        });
+                    } else if (node is Document) {
+                        contents.Add(new DocumentDTO() {
+                                Id = node.Id, 
+                                Name = node.Name,
+                                Permissions = await GetPermissionDTOList(node)
+                        });
+                    }
+                }
+            }
+            return contents;
+        }
+
+
+        ///<summary>
+        ///Method <c>GetPermissionDTOList<c> returns a list of permissions for
+        ///a given node
+        ///</summary>
+        private async Task<List<PermissionDTO>> GetPermissionDTOList(Node node) {
+            List<PermissionDTO> dtoPerm = new List<PermissionDTO>();
+            List<Permission> permissions = new List<Permission>();
+            if (node is Folder folder) {
+                permissions.AddRange(folder.Permissions);
+            } else if (node is Document document) {
+                Revision latestRev = document.Revisions.OrderByDescending(
+                        d => d.Created).First();
+                permissions.AddRange(latestRev.Permissions);
+            }
+            foreach (Permission p in permissions) {
+                PermissionDTO pd = new PermissionDTO{ Mode = p.Mode};
+                if (p.Role != null) {
+                    pd.Role = new RoleDTO{Name = p.Role.Name, Id = p.Role.Id};
+                } else if (p.User != null) {
+                    pd.User = new UserDTO{Name = p.User.Name, Id = p.User.Id};
+                }
+                dtoPerm.Add(pd);
+            }
+            return dtoPerm;
+        }
+
+
+        ///<summary>
+        ///Method <c>FilterNodes</c> filters a folder tree according to 
+        ///a search query and returns aa list of matches
+        ///</summary>
+        private async Task<List<Node>> FilterNodes(
+                Folder folder, User user, SearchCriteriaDTO query) {
+            List<Node> matches = new List<Node>();
+            if (folder.HasPermission(user, PermissionMode.Read)) {
+                foreach (Node node in folder.Contents) {
+                    if (node.Name.Contains(query.SearchTerm)) {
+                            matches.Add(node);
+                    }
+
+                    if (node is Folder f && folder.Contents != null) {
+                        List<Node> subMatches = await FilterNodes(
+                                f, user, query);
+                        matches.AddRange(subMatches);
+                    }
+                }
+            }
+            return matches;
+        }
+
+
+        ///<summary>
+        ///Method <c>MoveNode</c> moves or renames a node, according to the
+        ///supplied MoveNodeDTO
+        ///</summary>
+        public async Task<ServiceResponse<NodeDTO>> MoveNode(
+                Guid Id, MoveNodeDTO moveOptions, User user) {
+            ServiceResponse<NodeDTO> result =
+                new ServiceResponse<NodeDTO>();
+
+            Node? node = m_context.Nodes.Where(n => n.Id == Id)
+                .SingleOrDefault();
+
+            if (node == null) {
+                return ErrorResponse(result, 404, "object");
+            }
+            
+            if (node is Folder folder) {
+                if (!folder.HasPermission(user, PermissionMode.Write)) {
+                    return ErrorResponse(result, 403, "folder");
+                }
+            }else if (node is Document document) {
+                Revision latestRev = document.Revisions
+                    .OrderByDescending(r => r.Created).First();
+                if (!latestRev.HasPermission(user, PermissionMode.Write)) {
+                    return ErrorResponse(result, 403, "document");
+                }
+            }
+
+            if (!node.Parent.HasPermission(user, PermissionMode.Write)) {
+                return ErrorResponse(result, 403, "folder");
+            }
+
+            if (moveOptions.Destination != null) {
+                Folder destFolder = m_context.Folders
+                    .Where(f => f.Id == moveOptions.Destination)
+                    .SingleOrDefault();
+                if (destFolder == null) {
+                    return ErrorResponse(result, 404, "destination folder");
+                }
+                if (!destFolder.HasPermission(user, PermissionMode.Write)) {
+                    return ErrorResponse(result, 403, "destination folder");
+                }
+                node.Parent = destFolder;
+            }
+
+            if (moveOptions.Name != null) {
+                node.Name = moveOptions.Name;
+            }
+
+            NodeDTO resultNode = new NodeDTO(node.Id, node.Name);
+
+            await m_context.SaveChangesAsync();
+
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)200;
+            result.Data = resultNode;
+            return result;
+        }
+
+
+        ///<summary>
+        ///Method <c>DeleteNode</c> deletes requested node
+        ///</summary>
+        public async Task<ServiceResponse<int>> DeleteNode(Guid Id, User user) {
+            ServiceResponse<int> result = new ServiceResponse<int>();
+
+            Node node = m_context.Nodes.Where(n => n.Id == Id)
+                .SingleOrDefault();
+            
+            if (node == null) {
+                return ErrorResponse(result, 404, "object");
+            }
+
+            if (node is Folder folder) {
+                if (folder.HasPermission(user, PermissionMode.Write)) {
+                    return ErrorResponse(result, 403, "folder");
+                }
+            }else if (node is Document document) {
+                Revision latestRev = document.Revisions
+                    .OrderByDescending(r => r.Created).First();
+                if (!latestRev.HasPermission(user, PermissionMode.Write)) {
+                    return ErrorResponse(result, 403, "document");
+                }
+            }
+
+            if (!node.Parent.HasPermission(user, PermissionMode.Write)) {
+                return ErrorResponse(result, 403, "object");
+            }
+
+            m_context.Nodes.Remove(node);
+
+            await m_context.SaveChangesAsync();
+
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)200;
+            return result;
+        }
+
+            
 
 
         ///<summary>

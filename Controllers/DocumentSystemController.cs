@@ -15,11 +15,13 @@ namespace DocumentSystem.Controllers
     public class DocumentSystemController : ControllerBase {
         private readonly DocumentSystemService m_docserv;
         private readonly DocumentSystemContext m_context;
+        private readonly UserService m_userv;
 
         public DocumentSystemController(DocumentSystemService docserv,
-                DocumentSystemContext context) {
+                DocumentSystemContext context, UserService userv) {
             this.m_docserv = docserv;
             this.m_context = context;
+            this.m_userv  = userv;
         }
 
         [HttpGet]
@@ -27,8 +29,7 @@ namespace DocumentSystem.Controllers
         public async Task<ActionResult<FolderDTO>> GetFolderTree(
                 [FromQuery] Guid UserId,
                 Guid? Id = null) {
-            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
-                .SingleOrDefaultAsync();
+            User? user = await m_userv.GetUser(UserId);
             if (user == null) {
                 return StatusCode((int)401, new {
                     ErrorMessage="Not logged in"
@@ -52,8 +53,7 @@ namespace DocumentSystem.Controllers
         [Route("document/metadata/{Id}")]
         public async Task<ActionResult> GetDocumentInfo (
                 [FromQuery] Guid UserId, Guid Id) {
-            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
-                .SingleOrDefaultAsync();
+            User? user = await m_userv.GetUser(UserId);
             if (user == null) {
                 return StatusCode((int)401, new {
                         ErrorMessage = "Not logged in"
@@ -75,8 +75,7 @@ namespace DocumentSystem.Controllers
         [Route("document/download/{Id}")]
         public async Task<ActionResult> GetDocument(
                 [FromQuery] Guid UserId, Guid Id) {
-            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
-                .SingleOrDefaultAsync();
+            User? user = await m_userv.GetUser(UserId);
             if (user == null) {
                 return StatusCode((int)401, new {
                         ErrorMessage="Not logged in"
@@ -100,8 +99,7 @@ namespace DocumentSystem.Controllers
         [Route("document/upload/{Id}")]
         public async Task<ActionResult<DocumentDTO>> PostDocument(
                 Guid UserId, IFormFile document, Guid Id) {
-            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
-                .SingleOrDefaultAsync();
+            User? user = await m_userv.GetUser(UserId);
             if (user == null) {
                 return StatusCode((int)401, new {
                     ErrorMessage="Not logged in"
@@ -125,8 +123,7 @@ namespace DocumentSystem.Controllers
         [Route("folder/create/{Id}")]
         public async Task<ActionResult<FolderDTO>> PostFolder(
                 [FromQuery] Guid UserId, string Name, Guid Id) {
-            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
-                .SingleOrDefaultAsync();
+            User? user = await m_userv.GetUser(UserId);
             if (user == null) {
                 return StatusCode((int)401, new {
                     ErrorMessage="Not logged in"
@@ -145,21 +142,20 @@ namespace DocumentSystem.Controllers
             }
         }
 
-/*
+
         [HttpPatch]
-        [Route("folder/update/{Id}")]
-        public async Task<ActionResult<FolderDTO>> PatchFolder(
-                [FromQuery] Guid UserId, FolderDTO folder, Guid Id) {
-            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
-                .SingleOrDefaultAsync();
+        [Route("node/move/{Id}")]
+        public async Task<ActionResult<NodeDTO>> PatchFolder(
+                [FromQuery] Guid UserId, MoveNodeDTO node, Guid Id) {
+            User? user = await m_userv.GetUser(UserId);
             if (user == null) {
                 return StatusCode((int)401, new {
                         ErrorMessage="Not logged in"
                 });
             }
 
-            ServiceResponse<FolderDTO> result = 
-                await m_docserv.UpdateFolder(Id, folder, user);
+            ServiceResponse<NodeDTO> result = 
+                await m_docserv.MoveNode(Id, node, user);
 
             if (result.Success) {
                 return StatusCode((int)result.StatusCode, result.Data);
@@ -170,13 +166,12 @@ namespace DocumentSystem.Controllers
             }
         }
 
-*/
+
         [HttpPut]
         [Route("document/update/{Id}")]
         public async Task<ActionResult<DocumentDTO>> PutDocument(
                 [FromQuery] Guid UserId, IFormFile document, Guid Id) {
-            User user = await m_context.Users.Where(u => u.Id.Equals(UserId))
-                .SingleOrDefaultAsync();
+            User? user = await m_userv.GetUser(UserId);
             if (user == null) {
                 return StatusCode((int)401, new {
                         ErrorMessage="Not logged in"
@@ -188,6 +183,55 @@ namespace DocumentSystem.Controllers
 
             if (result.Success) {
                 return StatusCode((int)result.StatusCode, result.Data);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+
+
+        [HttpPost]
+        [Route("tree/search/{Id}")]
+        public async Task<ActionResult<List<SearchResultDTO>>>  SearchTree(
+                [FromQuery] Guid UserId, Guid Id, 
+                [FromBody] SearchCriteriaDTO query) {
+            User? user = await m_userv.GetUser(UserId);
+            if (user == null) {
+                return StatusCode((int)401, new { 
+                        ErrorMessage="Not logged in"
+                });
+            }
+
+            ServiceResponse<List<SearchResultDTO>> result = 
+                await m_docserv.SearchTree(Id, query, user);
+
+            if (result.Success) {
+                return StatusCode((int)result.StatusCode, result.Data);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+
+
+        [HttpDelete]
+        [Route("/node/delete/{Id}")]
+        public async Task<ActionResult> DeleteNode(
+                [FromQuery] Guid UserId, Guid Id) {
+            User? user = await m_userv.GetUser(UserId);
+            if (user == null) {
+                return StatusCode((int)401, new {
+                        ErrorMessage="Not logged in"
+                });
+            }
+
+            ServiceResponse<int> result = 
+                await m_docserv.DeleteNode(Id, user);
+
+            if (result.Success) {
+                return StatusCode((int)result.StatusCode);
             } else {
                 return StatusCode((int)result.StatusCode, new {
                         ErrorMessage = result.ErrorMessage

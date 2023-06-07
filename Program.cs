@@ -14,6 +14,7 @@ public class Program
         string connstr = builder.Configuration.GetConnectionString("DefaultConnection");
         builder.Services.AddScoped<DocumentSystemService>();
         builder.Services.AddScoped<FileService>();
+        builder.Services.AddScoped<UserService>();
         builder.Services.AddControllers();
         builder.Services.AddDbContext<DocumentSystemContext>(
             opt => opt.UseMySql(

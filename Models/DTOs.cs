@@ -11,6 +11,7 @@ namespace DocumentSystem.Models
     }
 
 
+
     public class FolderDTO : NodeDTO {
         public List<NodeDTO> Contents {get; set;}
         public List<PermissionDTO> Permissions {get; set;}
@@ -42,6 +43,7 @@ namespace DocumentSystem.Models
     }    
 
     public class PermissionDTO {
+        public Guid Id {get; set;}
         public RoleDTO? Role {get; set;}
         public UserDTO? User {get; set;}
         public PermissionMode Mode {get; set;}
@@ -54,6 +56,20 @@ namespace DocumentSystem.Models
 
     public class UserDTO {
         public Guid Id {get; set;}
+        public string Name {get; set;}
+    }
+
+    public class SearchCriteriaDTO {
+        public string SearchTerm {get; set;}
+    }
+
+    public class SearchResultDTO {
+        public NodeDTO Node {get; set;}
+        public string Location {get; set;}
+    }
+
+    public class MoveNodeDTO {
+        public Guid Destination {get; set;}
         public string Name {get; set;}
     }
 }

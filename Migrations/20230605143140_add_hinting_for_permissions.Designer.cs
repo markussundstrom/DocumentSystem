@@ -3,6 +3,7 @@ using System;
 using DocumentSystem.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentSystem.Migrations
 {
     [DbContext(typeof(DocumentSystemContext))]
-    partial class DocumentSystemContextModelSnapshot : ModelSnapshot
+    [Migration("20230605143140_add_hinting_for_permissions")]
+    partial class add_hinting_for_permissions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,7 +52,7 @@ namespace DocumentSystem.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<Guid?>("OwnerId")
+                    b.Property<Guid>("OwnerId")
                         .HasColumnType("char(36)");
 
                     b.Property<Guid?>("ParentId")
@@ -195,12 +197,14 @@ namespace DocumentSystem.Migrations
                 {
                     b.HasOne("DocumentSystem.Models.User", "Owner")
                         .WithMany()
-                        .HasForeignKey("OwnerId");
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("DocumentSystem.Models.Folder", "Parent")
                         .WithMany("Contents")
                         .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Owner");
 
