@@ -26,7 +26,7 @@ namespace DocumentSystem.Controllers
 
         [HttpGet]
         [Route("tree/{Id?}")]
-        public async Task<ActionResult<FolderDTO>> GetFolderTree(
+        public async Task<ActionResult<List<TreeNodeDTO>>> GetFolderTree(
                 [FromQuery] Guid UserId,
                 Guid? Id = null) {
             User? user = await m_userv.GetUser(UserId);
@@ -36,7 +36,7 @@ namespace DocumentSystem.Controllers
                 });
             }
 
-            ServiceResponse<List<NodeDTO>> result = 
+            ServiceResponse<List<TreeNodeDTO>> result = 
                 await m_docserv.GetFolderTree(Id, user);
 
             if (result.Success) {
@@ -50,7 +50,7 @@ namespace DocumentSystem.Controllers
 
 
         [HttpGet]
-        [Route("document/metadata/{Id}")]
+        [Route("document/{Id}/metadata")]
         public async Task<ActionResult> GetDocumentInfo (
                 [FromQuery] Guid UserId, Guid Id) {
             User? user = await m_userv.GetUser(UserId);
@@ -72,7 +72,7 @@ namespace DocumentSystem.Controllers
             }
         }
         [HttpGet]
-        [Route("document/download/{Id}")]
+        [Route("document/{Id}/download")]
         public async Task<ActionResult> GetDocument(
                 [FromQuery] Guid UserId, Guid Id) {
             User? user = await m_userv.GetUser(UserId);
@@ -232,6 +232,54 @@ namespace DocumentSystem.Controllers
 
             if (result.Success) {
                 return StatusCode((int)result.StatusCode);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+
+
+        [HttpGet]
+        [Route("node/{Id}/permissions")]
+        public async Task<ActionResult<List<PermissionDTO>>> GetPermissions(
+                [FromQuery] Guid UserId, Guid Id) {
+            User? user = await m_userv.GetUser(UserId);
+            if (user == null) {
+                return StatusCode((int)401, new {
+                        ErrorMessage="Not logged in"
+                });
+            }
+
+            ServiceResponse<List<PermissionDTO>> result = 
+                await m_docserv.GetPermissions(Id, user);
+
+            if (result.Success) {
+                return StatusCode((int)result.StatusCode, result.Data);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+
+
+        [HttpPost]
+        [Route("node/{Id}/permission")]
+        public async Task<ActionResult<List<PermissionDTO>>> PostPermission(
+                [FromQuery] Guid UserId, AddPermissionDTO permission, Guid Id) {
+            User? user = await m_userv.GetUser(UserId);
+            if (user == null) {
+                return StatusCode((int)401, new {
+                        ErrorMessage="Not logged in"
+                });
+            }
+
+            ServiceResponse<List<PermissionDTO>> result = 
+                await m_docserv.AddPermission(Id, permission, user);
+
+            if (result.Success) {
+                return StatusCode((int)result.StatusCode, result.Data);
             } else {
                 return StatusCode((int)result.StatusCode, new {
                         ErrorMessage = result.ErrorMessage

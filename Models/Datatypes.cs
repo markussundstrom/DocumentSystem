@@ -103,10 +103,11 @@ namespace DocumentSystem.Models
     }
 
 
+    [Flags]
     public enum PermissionMode {
         None = 0,
-        Admin = 1,
         Write = 2,
-        Read = 4
+        Read = 4,
+        Admin = 8,
     }
 }

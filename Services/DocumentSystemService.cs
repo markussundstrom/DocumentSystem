@@ -22,10 +22,10 @@ namespace DocumentSystem.Services
         }
 
 
-        public async Task<ServiceResponse<List<NodeDTO>>> GetFolderTree(
+        public async Task<ServiceResponse<List<TreeNodeDTO>>> GetFolderTree(
                 Guid? Id, User user) {
-            ServiceResponse<List<NodeDTO>> result = 
-                    new ServiceResponse<List<NodeDTO>>();
+            ServiceResponse<List<TreeNodeDTO>> result = 
+                    new ServiceResponse<List<TreeNodeDTO>>();
 
             //Check if folder exists
             if (Id != null && ! await m_context.Folders.AnyAsync(
@@ -42,7 +42,8 @@ namespace DocumentSystem.Services
                 return ErrorResponse(result, 403, "folder");
             }
 
-            List<NodeDTO> tree = await TraverseFolderTree(folder, user);
+            //List<NodeDTO> tree = await TraverseFolderTree(folder, user);
+            List<TreeNodeDTO> tree = await TraverseFolderTree(folder, user);
             result.Success = true;
             result.StatusCode = (HttpStatusCode)200;
             result.Data = tree;
@@ -348,31 +349,123 @@ namespace DocumentSystem.Services
 
 
         ///<summary>
+        ///Method <c>GetPermissions</c> returns a list of permissions for a node
+        ///</summary>
+        public async Task<ServiceResponse<List<PermissionDTO>>> GetPermissions(
+                Guid Id, User user) {
+            ServiceResponse<List<PermissionDTO>> result = 
+                new ServiceResponse<List<PermissionDTO>>();
+            Node? node = await m_context.Nodes.Where(n => n.Id == Id)
+                .SingleOrDefaultAsync();
+
+            if (node == null) {
+                return ErrorResponse(result, 404, "node");
+            }
+
+            if (node.Parent != null && !node.Parent.HasPermission(
+                        user, PermissionMode.Read | PermissionMode.Admin)) {
+                return ErrorResponse(result, 403, "parent folder");
+            }
+
+            List<PermissionDTO> permissions = new List<PermissionDTO>();
+            permissions.AddRange(await CreatePermissionDTOList(node));
+
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)200;
+            result.Data = permissions;
+            return result;
+        }
+
+
+        public async Task<ServiceResponse<List<PermissionDTO>>> AddPermission(
+                Guid Id, AddPermissionDTO permission, User user) {
+            ServiceResponse<List<PermissionDTO>> result =
+                new ServiceResponse<List<PermissionDTO>>();
+
+            Node? node = await m_context.Nodes.Where(n => n.Id == Id)
+                .SingleOrDefaultAsync();
+
+            if (node == null) {
+                return ErrorResponse(result, 404, "node");
+            }
+
+            Permission newPermission = new Permission() {
+                Mode = permission.Mode
+            };
+            
+            if (permission.RoleId != null) {
+                Role? targetRole = await m_context.Roles.Where(
+                        r => r.Id == permission.RoleId).SingleOrDefaultAsync();
+                newPermission.Role = targetRole;
+            }
+
+            if (permission.UserId != null) {
+                User? targetUser = await m_context.Users.Where(
+                        u => u.Id == permission.UserId).SingleOrDefaultAsync();
+                newPermission.User = targetUser;
+            }
+
+            if (newPermission.User == null && newPermission.Role == null) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)400;
+                result.ErrorMessage = "Either User or Role Id needs to be set";
+                return result;
+            }
+
+            if (node is Folder folder) {
+                if (!folder.HasPermission(user, PermissionMode.Admin)) {
+                    return ErrorResponse(result, 403, "folder");
+                }
+                folder.Permissions.Add(newPermission);
+            } else if (node is Document document) {
+                Revision latestRev = document.Revisions.OrderByDescending(
+                        d => d.Created).First();
+                m_context.Entry(latestRev).Collection(
+                        r => r.Permissions).Load();
+                if(!latestRev.HasPermission(user, PermissionMode.Admin)) {
+                    return ErrorResponse(result, 403, "folder");
+                }
+                latestRev.Permissions.Add(newPermission);
+            }
+            await m_context.SaveChangesAsync();
+            
+            result.Success = true;
+            result.Data = await CreatePermissionDTOList(node);
+            result.StatusCode = (HttpStatusCode)201;
+            return result;
+        }
+
+
+        ///<summary>
         ///Method <c>TraverseFolderTree<c> Traverses a folder tree recursively
         ///</summary>
         ///<returns>A List of NodeDTO:s representing the content.</returns>
-        private async Task<List<NodeDTO>> TraverseFolderTree(
+        private async Task<List<TreeNodeDTO>> TraverseFolderTree(
                 Folder folder, User user) {
-            List<NodeDTO> contents = new List<NodeDTO>();
+
+            List<TreeNodeDTO> contents = new List<TreeNodeDTO>();
+            m_context.Entry(folder).Collection(f => f.Contents).Load();
+
             if (folder.HasPermission(user, PermissionMode.Read)) {
                 foreach (Node node in folder.Contents) {
-                    if (node is Folder) {
-                        m_context.Entry(folder).Collection(
+                    TreeNodeDTO treeNodeDto = new TreeNodeDTO();
+                    treeNodeDto.Name = node.Name;
+                    treeNodeDto.Id = node.Id;
+                    treeNodeDto.Owner = node.Owner.Name;
+                    if (node is Folder currentFolder) {
+                        treeNodeDto.Contents = new List<TreeNodeDTO>();
+                        m_context.Entry(currentFolder).Collection(
                                 f => f.Permissions).Load();
-                        contents.Add(new FolderDTO() {
-                                Id = node.Id,
-                                Name = node.Name,
-                                Permissions = await GetPermissionDTOList(node),
-                                Contents = await TraverseFolderTree(
-                                        (Folder)node, user)
-                        });
-                    } else if (node is Document) {
-                        contents.Add(new DocumentDTO() {
-                                Id = node.Id, 
-                                Name = node.Name,
-                                Permissions = await GetPermissionDTOList(node)
-                        });
+                        m_context.Entry(currentFolder).Collection(
+                                f => f.Contents).Load();
+                        treeNodeDto.Contents.AddRange(await TraverseFolderTree(
+                                    currentFolder, user));
+                    } else if (node is Document currentDocument) {
+                        treeNodeDto.Created = currentDocument.Metadata.Created;
+                        treeNodeDto.Updated = currentDocument.Metadata.Updated;
                     }
+                    treeNodeDto.Permissions = await CreatePermissionDTOList(node);
+                    contents.Add(treeNodeDto);
                 }
             }
             return contents;
@@ -380,17 +473,20 @@ namespace DocumentSystem.Services
 
 
         ///<summary>
-        ///Method <c>GetPermissionDTOList<c> returns a list of permissions for
+        ///Method <c>CreatePermissionDTOList<c> builds a list of permissions for
         ///a given node
         ///</summary>
-        private async Task<List<PermissionDTO>> GetPermissionDTOList(Node node) {
+        private async Task<List<PermissionDTO>> CreatePermissionDTOList(Node node) {
             List<PermissionDTO> dtoPerm = new List<PermissionDTO>();
             List<Permission> permissions = new List<Permission>();
             if (node is Folder folder) {
                 permissions.AddRange(folder.Permissions);
             } else if (node is Document document) {
+                m_context.Entry(document).Collection(d => d.Revisions).Load();
                 Revision latestRev = document.Revisions.OrderByDescending(
                         d => d.Created).First();
+                m_context.Entry(latestRev).Collection(
+                        r => r.Permissions).Load();
                 permissions.AddRange(latestRev.Permissions);
             }
             foreach (Permission p in permissions) {

@@ -11,10 +11,10 @@ namespace DocumentSystem.Models
     }
 
 
-
     public class FolderDTO : NodeDTO {
-        public List<NodeDTO> Contents {get; set;}
-        public List<PermissionDTO> Permissions {get; set;}
+        public List<NodeDTO> Contents {get; set;} = new List<NodeDTO>();
+        public List<PermissionDTO> Permissions {get; set;} = 
+            new List<PermissionDTO>();
     }
 
 
@@ -71,5 +71,22 @@ namespace DocumentSystem.Models
     public class MoveNodeDTO {
         public Guid Destination {get; set;}
         public string Name {get; set;}
+    }
+
+    public class TreeNodeDTO {
+        public Guid Id {get; set;}
+        public string Name {get; set;}
+        public List<PermissionDTO> Permissions {get; set;} = new List<PermissionDTO>();
+        public string Owner {get; set;}
+        public List<TreeNodeDTO>? Contents {get; set;}
+        public DateTime? Created {get; set;}
+        public DateTime? Updated {get; set;}
+    }        
+
+    
+    public class AddPermissionDTO {
+        public Guid? RoleId {get; set;}
+        public Guid? UserId {get; set;}
+        public PermissionMode Mode {get; set;}
     }
 }

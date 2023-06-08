@@ -33,7 +33,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Metadata");
+                    b.ToTable("Metadata", (string)null);
                 });
 
             modelBuilder.Entity("DocumentSystem.Models.Node", b =>
@@ -62,7 +62,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("Nodes");
+                    b.ToTable("Nodes", (string)null);
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("Node");
                 });
@@ -98,7 +98,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Permissions");
+                    b.ToTable("Permissions", (string)null);
                 });
 
             modelBuilder.Entity("DocumentSystem.Models.Revision", b =>
@@ -120,7 +120,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasIndex("DocumentId");
 
-                    b.ToTable("Revisions");
+                    b.ToTable("Revisions", (string)null);
                 });
 
             modelBuilder.Entity("DocumentSystem.Models.Role", b =>
@@ -135,7 +135,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("DocumentSystem.Models.User", b =>
@@ -154,7 +154,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("RoleUser", b =>
@@ -169,7 +169,7 @@ namespace DocumentSystem.Migrations
 
                     b.HasIndex("UsersId");
 
-                    b.ToTable("RoleUser");
+                    b.ToTable("RoleUser", (string)null);
                 });
 
             modelBuilder.Entity("DocumentSystem.Models.Document", b =>
