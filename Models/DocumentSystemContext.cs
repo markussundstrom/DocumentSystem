@@ -42,6 +42,11 @@ namespace DocumentSystem.Models
                 .HasMany(r => r.Permissions)
                 .WithOne()
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder
+                .Entity<User>
+                .HasProperty(u => u.Name)
+                .IsUnique();
         }
 
         public DbSet<Node> Nodes {get; set;} = null!;
@@ -70,12 +75,14 @@ namespace DocumentSystem.Models
 
             
             var users = new User[] {
-                new User{Name="admin",Password="12345"},
-                new User{Name="user1",Password="12345"}
+                new User{Name="admin"},
+                new User{Name="user1"}
             };
 
             foreach(User u in users) {
-                u.Roles.Add(context.Roles.Where(r => r.Name.Equals("Anyone")).Single());
+                u.SetPassword("12345");
+                u.Roles.Add(context.Roles.Where(r => r
+                            .Name.Equals("Anyone")).Single());
                 context.Users.Add(u);
             }
 

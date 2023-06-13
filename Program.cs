@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using DocumentSystem.Models;
 using DocumentSystem.Services;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+
 namespace DocumentSystem;
 
 public class Program
@@ -9,9 +12,12 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        JWTOptions jwtOptions = builder.Configuration
+            .GetSection("JWT").Get<JWTOptions>();
         // Add services to the container.
 
-        string connstr = builder.Configuration.GetConnectionString("DefaultConnection");
+        string connstr = 
+            builder.Configuration.GetConnectionString("DefaultConnection");
         builder.Services.AddScoped<DocumentSystemService>();
         builder.Services.AddScoped<FileService>();
         builder.Services.AddScoped<UserService>();
@@ -22,9 +28,31 @@ public class Program
             )
         );
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+        builder.Services.AddSingleton(jwtOptions);
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-//        builder.Services.AddScoped(DocumentSystemService);
+        builder.Services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options => {
+                    byte[] signingKeyBytes = Encoding.UTF8
+                        .GetBytes(jwtOptions.SigningKey);
+
+                    options.TokenValidationParameters = 
+                            new TokenValidationParameters() {
+                                ValidateIssuer = true,
+                                ValidateAudience = true,
+                                ValidateLifetime = true,
+                                ValidateIssuerSigningKey = true,
+                                ValidIssuer = jwtOPtions.Issuer,
+                                ValidAudience = jwtOptions.Audience,
+                                IssuerSigningKey = 
+                                    new SymmetricSecurityKey(signingKeyBytes)
+                            };
+            })
+        ;
+        builder.Services.AddAuthorization();
+        
+
 
         var app = builder.Build();
 
@@ -60,4 +88,12 @@ public class Program
             }
         }
     }
+
+    public record class JWTOptions (
+        string Issuer,
+        string Audience,
+        string SigningKey,
+        int ExpirationSeconds
+    );
+
 }

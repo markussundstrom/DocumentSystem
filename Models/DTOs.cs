@@ -38,8 +38,8 @@ namespace DocumentSystem.Models
 
 
     public class MetadataDTO {
-        public DateTime Created;
-        public DateTime? Updated;
+        public DateTime Created {get; set;}
+        public DateTime? Updated {get; set;}
     }    
 
     public class PermissionDTO {
@@ -89,4 +89,17 @@ namespace DocumentSystem.Models
         public Guid? UserId {get; set;}
         public PermissionMode Mode {get; set;}
     }
+
+
+    public class CredentialsDTO {
+        public string Username {get; set;}
+        public string Password {get; set;}
+    }
+
+
+    public class AuthResponseDTO {
+        public string Username {get; set;}
+        public string AccessToken {get; set;}
+    }
+
 }

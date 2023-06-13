@@ -23,7 +23,35 @@ namespace DocumentSystem.Controllers
             this.m_context = context;
             this.m_userv  = userv;
         }
+        ///<summary>
+        ///Get the id for the document root folder
+        ///</summary>
+        [HttpGet]
+        [Route("documentroot")]
+        public async Task<ActionResult<List<NodeDTO>>> GetDocumentRoot(
+                [FromQuery] Guid UserId) {
+            User? user = await m_userv.GetUser(UserId);
+            if (user == null) {
+                return StatusCode((int)401, new {
+                    ErrorMessage="Not logged in"
+                });
+            }
 
+            ServiceResponse<List<NodeDTO>> result = 
+                await m_docserv.GetDocumentRoot(user);
+
+            if (result.Success) {
+                return Ok(result.Data);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+
+        ///<summary>
+        ///List the contents of a folder recursively
+        ///</summary>
         [HttpGet]
         [Route("tree/{Id?}")]
         public async Task<ActionResult<List<TreeNodeDTO>>> GetFolderTree(
@@ -49,6 +77,9 @@ namespace DocumentSystem.Controllers
         }
 
 
+        ///<summary>
+        ///Get metadata for a document
+        ///</summary>
         [HttpGet]
         [Route("document/{Id}/metadata")]
         public async Task<ActionResult> GetDocumentInfo (
@@ -71,6 +102,11 @@ namespace DocumentSystem.Controllers
                 });
             }
         }
+
+
+        ///<summary>
+        ///Download the document content
+        ///</summary>
         [HttpGet]
         [Route("document/{Id}/download")]
         public async Task<ActionResult> GetDocument(
@@ -95,6 +131,9 @@ namespace DocumentSystem.Controllers
         }
 
 
+        ///<summary>
+        ///Upload a file and create a new document
+        ///</summary>
         [HttpPost]
         [Route("document/upload/{Id}")]
         public async Task<ActionResult<DocumentDTO>> PostDocument(
@@ -119,6 +158,9 @@ namespace DocumentSystem.Controllers
         }
 
 
+        ///<summary>
+        ///Create a new folder
+        ///</summary>
         [HttpPost]
         [Route("folder/create/{Id}")]
         public async Task<ActionResult<FolderDTO>> PostFolder(
@@ -143,6 +185,9 @@ namespace DocumentSystem.Controllers
         }
 
 
+        ///<summary>
+        ///Rename or move a document or folder
+        ///</summary>
         [HttpPatch]
         [Route("node/move/{Id}")]
         public async Task<ActionResult<NodeDTO>> PatchFolder(
@@ -167,6 +212,9 @@ namespace DocumentSystem.Controllers
         }
 
 
+        ///<summary>
+        ///Update a document's content
+        ///</summary>
         [HttpPut]
         [Route("document/update/{Id}")]
         public async Task<ActionResult<DocumentDTO>> PutDocument(
@@ -191,6 +239,9 @@ namespace DocumentSystem.Controllers
         }
 
 
+        ///<summary>
+        ///Search the document storage
+        ///</summary>
         [HttpPost]
         [Route("tree/search/{Id}")]
         public async Task<ActionResult<List<SearchResultDTO>>>  SearchTree(
@@ -216,6 +267,9 @@ namespace DocumentSystem.Controllers
         }
 
 
+        ///<summary>
+        ///Delete a document or folder
+        ///</summary>
         [HttpDelete]
         [Route("/node/delete/{Id}")]
         public async Task<ActionResult> DeleteNode(
@@ -240,6 +294,9 @@ namespace DocumentSystem.Controllers
         }
 
 
+        ///<summary>
+        ///View the permissions for a document or folder
+        ///</summary>
         [HttpGet]
         [Route("node/{Id}/permissions")]
         public async Task<ActionResult<List<PermissionDTO>>> GetPermissions(
@@ -264,6 +321,9 @@ namespace DocumentSystem.Controllers
         }
 
 
+        ///<summary>
+        ///Add a new permission entry to a document or folder
+        ///</summary>
         [HttpPost]
         [Route("node/{Id}/permission")]
         public async Task<ActionResult<List<PermissionDTO>>> PostPermission(
@@ -280,6 +340,60 @@ namespace DocumentSystem.Controllers
 
             if (result.Success) {
                 return StatusCode((int)result.StatusCode, result.Data);
+            } else {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+
+
+        ///<summary>
+        ///Modify the mode of a permission entry
+        ///</summary>
+        [HttpPatch]
+        [Route("permission/{Id}")]
+        public async Task<ActionResult<PermissionDTO>> PatchPermission(
+                [FromQuery] Guid UserId, PermissionMode mode, Guid Id) {
+            User? user = await m_userv.GetUser(UserId);
+            if (user == null) {
+                return StatusCode((int)401, new {
+                        ErrorMessage="Not logged in"
+                });
+            }
+
+            ServiceResponse<PermissionDTO> result = 
+                await m_docserv.ModifyOrDeletePermission(Id, mode, false, user);
+
+            if (result.Success) {
+                return StatusCode((int)result.StatusCode, result.Data);
+            } else  {
+                return StatusCode((int)result.StatusCode, new {
+                        ErrorMessage = result.ErrorMessage
+                });
+            }
+        }
+
+
+        ///<summary>
+        ///Delete a permission entry
+        ///</summary>
+        [HttpDelete]
+        [Route("permission/{Id}")]
+        public async Task<ActionResult> DeletePermission(
+                [FromQuery] Guid UserId, Guid Id) {
+            User? user = await m_userv.GetUser(UserId);
+            if (user == null) {
+                return StatusCode((int)401, new {
+                        ErrorMessage="Not logged in"
+                });
+            }
+
+            ServiceResponse<PermissionDTO> result = 
+                await m_docserv.ModifyOrDeletePermission(Id, null, true, user);
+
+            if (result.Success) {
+                return StatusCode((int)result.StatusCode);
             } else {
                 return StatusCode((int)result.StatusCode, new {
                         ErrorMessage = result.ErrorMessage

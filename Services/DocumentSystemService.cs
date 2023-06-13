@@ -22,6 +22,43 @@ namespace DocumentSystem.Services
         }
 
 
+        ///<summary>
+        ///Method <c>GetDocumentroot</c> returns the document root folder
+        ///</summary>
+        public async Task<ServiceResponse<List<NodeDTO>>> GetDocumentRoot(
+                User user) {
+            ServiceResponse<List<NodeDTO>> result = 
+                new ServiceResponse<List<NodeDTO>>();
+
+            List<Folder> rootFolders = new List<Folder>();
+            //FIXME Modify to allow returning several root folders
+            rootFolders.Add(await m_context.Folders
+                    .Where(f => f.Name.Equals("DocumentRoot"))
+                    .SingleOrDefaultAsync());
+            
+            List<NodeDTO> rootFoldersDto = new List<NodeDTO>();
+
+            foreach (Folder f in rootFolders) {
+                //if (f.HasPermission(user, PermissionMode.Read)) {
+                    rootFoldersDto.Add(new NodeDTO {
+                            Id = f.Id,
+                            Name = f.Name
+                        }
+                    );
+                    Console.WriteLine(f.Name);
+               // }
+            }
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)200;
+            result.Data = rootFoldersDto;
+            return result;
+        }
+
+
+        ///<summary>
+        ///Method <c>GetFolderTree</c> is used to get a list of the contents
+        ///of a folder
+        ///</summary>
         public async Task<ServiceResponse<List<TreeNodeDTO>>> GetFolderTree(
                 Guid? Id, User user) {
             ServiceResponse<List<TreeNodeDTO>> result = 
@@ -51,7 +88,6 @@ namespace DocumentSystem.Services
         }
 
 
-
         ///<summary>
         ///Method <c>GetDocumentInfo</c>  returns document information such 
         ///as metadata and revision history for a given document.
@@ -77,10 +113,13 @@ namespace DocumentSystem.Services
             }
 
             DocumentInfoDTO docInfo = new DocumentInfoDTO();
+            docInfo.Id = document.Id;
+            docInfo.Name = document.Name;
             docInfo.Metadata = new MetadataDTO{
                 Created = document.Metadata.Created,
                 Updated = document.Metadata.Updated
             };
+
 
             foreach (Revision rev in document.Revisions) {
                 if (rev.HasPermission(user, PermissionMode.Read)) {
@@ -281,9 +320,8 @@ namespace DocumentSystem.Services
 
             DateTime now = DateTime.Now;
 
-            Revision newRev = new Revision{
-                Created = now, FileId = Guid.NewGuid()
-            };
+            Revision newRev = await GenerateNewRevision(latestRev);
+            newRev.FileId = Guid.NewGuid();
             document.Revisions.Add(newRev);
             document.Metadata.Updated = now;
 
@@ -423,7 +461,7 @@ namespace DocumentSystem.Services
                 m_context.Entry(latestRev).Collection(
                         r => r.Permissions).Load();
                 if(!latestRev.HasPermission(user, PermissionMode.Admin)) {
-                    return ErrorResponse(result, 403, "folder");
+                    return ErrorResponse(result, 403, "document");
                 }
                 latestRev.Permissions.Add(newPermission);
             }
@@ -432,6 +470,126 @@ namespace DocumentSystem.Services
             result.Success = true;
             result.Data = await CreatePermissionDTOList(node);
             result.StatusCode = (HttpStatusCode)201;
+            return result;
+        }
+
+
+        ///<summary>
+        ///Method <c>ModifyPermission</c> changes the permission mode value
+        ///of a given permission.
+        ///</summary>
+        public async Task<ServiceResponse<PermissionDTO>> 
+            ModifyOrDeletePermission(
+                    Guid Id, PermissionMode? mode, bool isDelete, User user) {
+            ServiceResponse<PermissionDTO> result = 
+                new ServiceResponse<PermissionDTO>();
+
+            if (!isDelete && mode == null) {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)400;
+                result.ErrorMessage = "A permission mode needs to be entered"
+                    + "when modifying permission.";
+                return result;
+            }
+
+            Permission? permission = await m_context.Permissions
+                .Where(p => p.Id == Id).SingleOrDefaultAsync();
+            
+            if (permission == null) {
+                return ErrorResponse(result, 404, "permission entry");
+            }
+
+            Revision? revision = await m_context.Revisions
+                .Where(r => r.Permissions.Any(p => p.Id == Id))
+                .FirstOrDefaultAsync();
+
+            Folder? folder = await m_context.Folders
+                .Where(f => f.Permissions.Any(p => p.Id == Id))
+                .FirstOrDefaultAsync();
+
+            if (revision != null) {
+                //Check that the requested permission belongs to the 
+                //current document revision
+                Document document = revision.Document;
+                m_context.Entry(document).Collection(d => d.Revisions).Load();
+                Revision latestRev = document.Revisions
+                    .OrderByDescending(r => r.Created).First();
+                if (latestRev != revision) {
+                    result.Success = false;
+                    result.StatusCode = (HttpStatusCode)400;
+                    result.ErrorMessage = "Requested permission entry is for"
+                        + "archived document revision";
+                    return result;
+                }
+                if (!revision.HasPermission(user, PermissionMode.Admin)) {
+                        return ErrorResponse(result, 403, "document");
+                }
+
+                DateTime now = DateTime.Now;
+
+                Revision newRev = new Revision {
+                    Id = Guid.NewGuid(),
+                    Created = now,
+                    DocumentId = revision.DocumentId,
+                    FileId = revision.FileId
+                };
+
+                foreach (Permission p in revision.Permissions) {
+                    Permission newPerm = new Permission {
+                        Id = Guid.NewGuid(),
+                        Role = p.Role,
+                        User = p.User,
+                        Mode = p.Mode
+                    };
+                    if (p.Id == permission.Id) {
+                        if (isDelete) {
+                            continue;
+                        }
+                        newPerm.Mode = (PermissionMode)mode;
+                        permission = newPerm;
+                    }
+                    newRev.Permissions.Add(newPerm);
+                }
+
+                document.Revisions.Add(newRev);
+                document.Metadata.Updated = now;
+            } else if (folder != null) {
+                if (!folder.HasPermission(user, PermissionMode.Admin)) {
+                        return ErrorResponse(result, 403, "folder");
+                }
+                if (isDelete) {
+                    folder.Permissions.Remove(permission);
+                } else {
+                    permission.Mode = (PermissionMode)mode;
+                }
+            } else {
+                result.Success = false;
+                result.StatusCode = (HttpStatusCode)400;
+                result.ErrorMessage = "Permission entry is not attached to"
+                    + "either a folder or document revision.";
+                return result;
+            }
+
+            result.Success = true;
+            result.StatusCode = (HttpStatusCode)200;
+            if (!isDelete) {
+                m_context.Entry(permission).Reload();
+                RoleDTO roleDto = new RoleDTO {
+                    Id = permission.Role.Id,
+                    Name = permission.Role.Name
+                };
+                UserDTO userDto = new UserDTO {
+                    Id = permission.User.Id,
+                    Name = permission.User.Name
+                };
+                PermissionDTO permissionDto = new PermissionDTO {
+                    Id = permission.Id,
+                    Role = roleDto,
+                    User = userDto,
+                    Mode = permission.Mode
+                };
+                result.Data = permissionDto;
+            }
             return result;
         }
 
@@ -523,6 +681,31 @@ namespace DocumentSystem.Services
                 }
             }
             return matches;
+        }
+
+        ///<summary>
+        ///Method <c>GenerateNewRevision</c> is used when a new revision for a 
+        ///document needs to be generated, for example when updating the 
+        ///content or permissions. A revision is supplied as argument, and a 
+        ///new revision in whic the desired may be performed is returned.
+        ///</summary>
+        private async Task<Revision> GenerateNewRevision(Revision baseRev) {
+            Revision newRevision = new Revision {
+                Id = Guid.NewGuid(),
+                Created = DateTime.Now,
+                Document = baseRev.Document,
+                FileId = baseRev.FileId
+            };
+            foreach (Permission p in baseRev.Permissions) {
+                Permission newP = new Permission {
+                    Id = Guid.NewGuid(),
+                    Role = p.Role,
+                    User = p.User,
+                    Mode = p.Mode
+                };
+                newRevision.Permissions.Add(newP);
+            }
+            return newRevision;
         }
 
 
@@ -646,14 +829,4 @@ namespace DocumentSystem.Services
     }
 
 
-    ///<summary>
-    ///Class <c>ServiceResponse<T></c> is used as return value
-    ///from the service layer.
-    ///</summary>
-    public class ServiceResponse<T> {
-        public bool Success {get; set;}
-        public HttpStatusCode StatusCode {get; set;}
-        public T? Data {get; set;}
-        public String? ErrorMessage {get; set;}
-    }
 }

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "QqI7btOkXvIpctyoktTRf0CseeXO7BMwPfs366cDO84T2jtLonl40MOtNUBZO7hkBamsqrzNQWNVzf3p3yIgzw==",
+  "dgSpecHash": "nzRfZKAjl/lsX1akVsqnBufDMOskBrg8/Aj1PWCdpAgpR0uB5/3tk7FnMyao7vqFTJrnBfo2GYxIjwWrw5Au4Q==",
   "success": true,
   "projectFilePath": "/home/markus/With-Without/DocumentSystem/DocumentSystem.csproj",
   "expectedPackageFiles": [
@@ -8,6 +8,7 @@
     "/home/markus/.nuget/packages/messagepack/2.1.152/messagepack.2.1.152.nupkg.sha512",
     "/home/markus/.nuget/packages/messagepack.annotations/2.1.152/messagepack.annotations.2.1.152.nupkg.sha512",
     "/home/markus/.nuget/packages/messagepackanalyzer/2.1.152/messagepackanalyzer.2.1.152.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/6.0.16/microsoft.aspnetcore.authentication.jwtbearer.6.0.16.nupkg.sha512",
     "/home/markus/.nuget/packages/microsoft.aspnetcore.razor.language/6.0.0/microsoft.aspnetcore.razor.language.6.0.0.nupkg.sha512",
     "/home/markus/.nuget/packages/microsoft.bcl.asyncinterfaces/5.0.0/microsoft.bcl.asyncinterfaces.5.0.0.nupkg.sha512",
     "/home/markus/.nuget/packages/microsoft.build/17.3.2/microsoft.build.17.3.2.nupkg.sha512",
@@ -49,11 +50,12 @@
     "/home/markus/.nuget/packages/microsoft.extensions.options/6.0.0/microsoft.extensions.options.6.0.0.nupkg.sha512",
     "/home/markus/.nuget/packages/microsoft.extensions.primitives/6.0.0/microsoft.extensions.primitives.6.0.0.nupkg.sha512",
     "/home/markus/.nuget/packages/microsoft.identity.client/4.21.1/microsoft.identity.client.4.21.1.nupkg.sha512",
-    "/home/markus/.nuget/packages/microsoft.identitymodel.jsonwebtokens/6.8.0/microsoft.identitymodel.jsonwebtokens.6.8.0.nupkg.sha512",
-    "/home/markus/.nuget/packages/microsoft.identitymodel.logging/6.8.0/microsoft.identitymodel.logging.6.8.0.nupkg.sha512",
-    "/home/markus/.nuget/packages/microsoft.identitymodel.protocols/6.8.0/microsoft.identitymodel.protocols.6.8.0.nupkg.sha512",
-    "/home/markus/.nuget/packages/microsoft.identitymodel.protocols.openidconnect/6.8.0/microsoft.identitymodel.protocols.openidconnect.6.8.0.nupkg.sha512",
-    "/home/markus/.nuget/packages/microsoft.identitymodel.tokens/6.8.0/microsoft.identitymodel.tokens.6.8.0.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.identitymodel.abstractions/6.30.0/microsoft.identitymodel.abstractions.6.30.0.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.identitymodel.jsonwebtokens/6.30.0/microsoft.identitymodel.jsonwebtokens.6.30.0.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.identitymodel.logging/6.30.0/microsoft.identitymodel.logging.6.30.0.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.identitymodel.protocols/6.10.0/microsoft.identitymodel.protocols.6.10.0.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.identitymodel.protocols.openidconnect/6.10.0/microsoft.identitymodel.protocols.openidconnect.6.10.0.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.identitymodel.tokens/6.30.0/microsoft.identitymodel.tokens.6.30.0.nupkg.sha512",
     "/home/markus/.nuget/packages/microsoft.net.stringtools/17.3.2/microsoft.net.stringtools.17.3.2.nupkg.sha512",
     "/home/markus/.nuget/packages/microsoft.netcore.platforms/1.1.1/microsoft.netcore.platforms.1.1.1.nupkg.sha512",
     "/home/markus/.nuget/packages/microsoft.netcore.targets/1.1.3/microsoft.netcore.targets.1.1.3.nupkg.sha512",
@@ -124,7 +126,7 @@
     "/home/markus/.nuget/packages/system.globalization/4.3.0/system.globalization.4.3.0.nupkg.sha512",
     "/home/markus/.nuget/packages/system.globalization.calendars/4.3.0/system.globalization.calendars.4.3.0.nupkg.sha512",
     "/home/markus/.nuget/packages/system.globalization.extensions/4.3.0/system.globalization.extensions.4.3.0.nupkg.sha512",
-    "/home/markus/.nuget/packages/system.identitymodel.tokens.jwt/6.8.0/system.identitymodel.tokens.jwt.6.8.0.nupkg.sha512",
+    "/home/markus/.nuget/packages/system.identitymodel.tokens.jwt/6.30.0/system.identitymodel.tokens.jwt.6.30.0.nupkg.sha512",
     "/home/markus/.nuget/packages/system.io/4.3.0/system.io.4.3.0.nupkg.sha512",
     "/home/markus/.nuget/packages/system.io.compression/4.3.0/system.io.compression.4.3.0.nupkg.sha512",
     "/home/markus/.nuget/packages/system.io.compression.zipfile/4.3.0/system.io.compression.zipfile.4.3.0.nupkg.sha512",
@@ -182,7 +184,10 @@
     "/home/markus/.nuget/packages/system.threading.timer/4.3.0/system.threading.timer.4.3.0.nupkg.sha512",
     "/home/markus/.nuget/packages/system.windows.extensions/6.0.0/system.windows.extensions.6.0.0.nupkg.sha512",
     "/home/markus/.nuget/packages/system.xml.readerwriter/4.3.0/system.xml.readerwriter.4.3.0.nupkg.sha512",
-    "/home/markus/.nuget/packages/system.xml.xdocument/4.3.0/system.xml.xdocument.4.3.0.nupkg.sha512"
+    "/home/markus/.nuget/packages/system.xml.xdocument/4.3.0/system.xml.xdocument.4.3.0.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.netcore.app.ref/6.0.16/microsoft.netcore.app.ref.6.0.16.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.aspnetcore.app.ref/6.0.16/microsoft.aspnetcore.app.ref.6.0.16.nupkg.sha512",
+    "/home/markus/.nuget/packages/microsoft.netcore.app.host.linux-x64/6.0.16/microsoft.netcore.app.host.linux-x64.6.0.16.nupkg.sha512"
   ],
   "logs": []
 }
