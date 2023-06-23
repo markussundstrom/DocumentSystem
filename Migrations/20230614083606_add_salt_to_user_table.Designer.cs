@@ -3,6 +3,7 @@ using System;
 using DocumentSystem.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentSystem.Migrations
 {
     [DbContext(typeof(DocumentSystemContext))]
-    partial class DocumentSystemContextModelSnapshot : ModelSnapshot
+    [Migration("20230614083606_add_salt_to_user_table")]
+    partial class add_salt_to_user_table
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

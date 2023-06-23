@@ -3,6 +3,7 @@ using DocumentSystem.Models;
 using DocumentSystem.Services;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace DocumentSystem;
 
@@ -43,7 +44,7 @@ public class Program
                                 ValidateAudience = true,
                                 ValidateLifetime = true,
                                 ValidateIssuerSigningKey = true,
-                                ValidIssuer = jwtOPtions.Issuer,
+                                ValidIssuer = jwtOptions.Issuer,
                                 ValidAudience = jwtOptions.Audience,
                                 IssuerSigningKey = 
                                     new SymmetricSecurityKey(signingKeyBytes)
@@ -65,6 +66,7 @@ public class Program
 
         app.UseHttpsRedirection();
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
 
@@ -89,11 +91,10 @@ public class Program
         }
     }
 
-    public record class JWTOptions (
-        string Issuer,
-        string Audience,
-        string SigningKey,
-        int ExpirationSeconds
-    );
-
+}
+public class JWTOptions {
+    public string Issuer {get; set;}
+    public string Audience {get; set;}
+    public string SigningKey {get; set;}
+    public int ExpirationSeconds {get; set;}
 }

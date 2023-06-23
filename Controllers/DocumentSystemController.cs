@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 using DocumentSystem.Services;
@@ -27,10 +29,15 @@ namespace DocumentSystem.Controllers
         ///Get the id for the document root folder
         ///</summary>
         [HttpGet]
+        [Authorize]
         [Route("documentroot")]
-        public async Task<ActionResult<List<NodeDTO>>> GetDocumentRoot(
-                [FromQuery] Guid UserId) {
-            User? user = await m_userv.GetUser(UserId);
+        public async Task<ActionResult<List<NodeDTO>>> GetDocumentRoot() {
+            Guid userGuid = new Guid();
+            Guid.TryParse(
+                    User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+                    out userGuid
+            );
+            User? user = await m_userv.GetUser(userGuid);
             if (user == null) {
                 return StatusCode((int)401, new {
                     ErrorMessage="Not logged in"

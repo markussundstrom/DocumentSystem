@@ -15,11 +15,12 @@ namespace DocumentSystem.Models
         public string Salt {get; set;}
 
 
-        public bool TryPassword(string password) {
-            password += Salt;
-            byte[] pwBytes = Encoding.UTF8.GetBytes(Password);
+        public bool TryPassword(string pwInput) {
+            pwInput += Salt;
+            byte[] pwBytes = Encoding.UTF8.GetBytes(pwInput);
             HashAlgorithm algo = HashAlgorithm.Create("SHA512");
             byte[] hash = algo.ComputeHash(pwBytes);
+
             return(Password == Convert.ToBase64String(hash));
         }
 

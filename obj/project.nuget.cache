@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "nzRfZKAjl/lsX1akVsqnBufDMOskBrg8/Aj1PWCdpAgpR0uB5/3tk7FnMyao7vqFTJrnBfo2GYxIjwWrw5Au4Q==",
+  "dgSpecHash": "GlE9co91wFv7JU5VOz2Tf0qqQMDyxPM4lKemlQdj7XPUHk+DQ/IgYcQiXQ5V07+ryI5TxyDqoXjhNcbFWrB50Q==",
   "success": true,
   "projectFilePath": "/home/markus/With-Without/DocumentSystem/DocumentSystem.csproj",
   "expectedPackageFiles": [
@@ -184,10 +184,7 @@
     "/home/markus/.nuget/packages/system.threading.timer/4.3.0/system.threading.timer.4.3.0.nupkg.sha512",
     "/home/markus/.nuget/packages/system.windows.extensions/6.0.0/system.windows.extensions.6.0.0.nupkg.sha512",
     "/home/markus/.nuget/packages/system.xml.readerwriter/4.3.0/system.xml.readerwriter.4.3.0.nupkg.sha512",
-    "/home/markus/.nuget/packages/system.xml.xdocument/4.3.0/system.xml.xdocument.4.3.0.nupkg.sha512",
-    "/home/markus/.nuget/packages/microsoft.netcore.app.ref/6.0.16/microsoft.netcore.app.ref.6.0.16.nupkg.sha512",
-    "/home/markus/.nuget/packages/microsoft.aspnetcore.app.ref/6.0.16/microsoft.aspnetcore.app.ref.6.0.16.nupkg.sha512",
-    "/home/markus/.nuget/packages/microsoft.netcore.app.host.linux-x64/6.0.16/microsoft.netcore.app.host.linux-x64.6.0.16.nupkg.sha512"
+    "/home/markus/.nuget/packages/system.xml.xdocument/4.3.0/system.xml.xdocument.4.3.0.nupkg.sha512"
   ],
   "logs": []
 }

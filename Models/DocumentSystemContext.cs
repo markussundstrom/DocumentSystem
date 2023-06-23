@@ -44,8 +44,8 @@ namespace DocumentSystem.Models
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder
-                .Entity<User>
-                .HasProperty(u => u.Name)
+                .Entity<User>()
+                .HasIndex(u => u.Name)
                 .IsUnique();
         }
 
