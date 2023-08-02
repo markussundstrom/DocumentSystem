@@ -62,9 +62,13 @@ namespace DocumentSystem.Controllers
         [HttpGet]
         [Route("tree/{Id?}")]
         public async Task<ActionResult<List<TreeNodeDTO>>> GetFolderTree(
-                [FromQuery] Guid UserId,
                 Guid? Id = null) {
-            User? user = await m_userv.GetUser(UserId);
+            Guid userGuid = new Guid();
+            Guid.TryParse(
+                    User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+                    out userGuid
+            );
+            User? user = await m_userv.GetUser(userGuid);
             if (user == null) {
                 return StatusCode((int)401, new {
                     ErrorMessage="Not logged in"
@@ -144,8 +148,13 @@ namespace DocumentSystem.Controllers
         [HttpPost]
         [Route("document/upload/{Id}")]
         public async Task<ActionResult<DocumentDTO>> PostDocument(
-                Guid UserId, IFormFile document, Guid Id) {
-            User? user = await m_userv.GetUser(UserId);
+                IFormFile document, Guid Id) {
+            Guid userGuid = new Guid();
+            Guid.TryParse(
+                    User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+                    out userGuid
+            );
+            User? user = await m_userv.GetUser(userGuid);
             if (user == null) {
                 return StatusCode((int)401, new {
                     ErrorMessage="Not logged in"
